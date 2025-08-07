@@ -1,0 +1,47 @@
+{
+  "name": "openmusicv2",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js",
+    "migrate": "node-pg-migrate",
+    "test": "npx newman run \"test/OpenMusic API V2 Test/OpenMusicAPIV2PostmanTest/Open Music API V2 Test.postman_collection.json\" -e \"test/OpenMusic API V2 Test/OpenMusicAPIV2PostmanTest/OpenMusic API Test.postman_environment.json\" --verbose",
+    "lint": "eslint . "
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/auto-bind": "^1.2.0",
+    "@types/bcrypt": "^6.0.0",
+    "@types/dotenv": "^6.1.1",
+    "@types/joi": "^17.2.2",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/nanoid": "^2.1.0",
+    "@types/newman": "^5.3.6",
+    "@types/node": "^24.2.0",
+    "@types/node-pg-migrate": "^2.3.1",
+    "@types/pg": "^8.15.5",
+    "eslint": "^9.32.0",
+    "eslint-config-dicodingacademy": "^0.9.5",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@hapi/hapi": "^21.4.0",
+    "auto-bind": "^5.0.1",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.1",
+    "joi": "^18.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "nanoid": "^5.1.5",
+    "newman": "^6.2.1",
+    "node-pg-migrate": "^8.0.3",
+    "pg": "^8.16.3"
+  },
+  "type": "module"
+}
