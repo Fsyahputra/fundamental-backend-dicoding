@@ -1,4 +1,8 @@
-import type { Request as R, ResponseToolkit as H, Lifecycle as Lf } from "@hapi/hapi";
+import type {
+  Request as R,
+  ResponseToolkit as H,
+  Lifecycle as Lf,
+} from '@hapi/hapi';
 
 export type TUserDTO = {
   id?: string;
@@ -7,7 +11,7 @@ export type TUserDTO = {
   fullname: string;
 };
 
-export type TUser = Omit<TUserDTO, "id"> & {
+export type TUser = Omit<TUserDTO, 'id'> & {
   id: string;
 };
 

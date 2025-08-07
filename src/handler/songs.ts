@@ -1,8 +1,19 @@
-import autoBind from "auto-bind";
-import { BadRequestError, NotFoundError } from "../exception.js";
-import type { TResponse } from "../types/shared.js";
-import type { IServiceSong, ISongHandler, queryParams, Song, SongDTO, TSongSchema } from "../types/songs.js";
-import type { Request as R, ResponseToolkit as H, Lifecycle as Lf } from "@hapi/hapi";
+import autoBind from 'auto-bind';
+import type { TResponse } from '../types/shared.js';
+import type {
+  IServiceSong,
+  ISongHandler,
+  queryParams,
+  Song,
+  SongDTO,
+  TSongSchema,
+} from '../types/songs.js';
+import type {
+  Request as R,
+  ResponseToolkit as H,
+  Lifecycle as Lf,
+} from '@hapi/hapi';
+import { checkData, checkIsExist } from '../utils.js';
 
 class SongHandler implements ISongHandler {
   private service: IServiceSong;
@@ -15,14 +26,12 @@ class SongHandler implements ISongHandler {
   }
 
   public async getSongById(r: R, h: H): Promise<Lf.ReturnValue> {
-    const id = r.params["id"];
-
-    const song = await this.service.getById(id);
-    if (!song) {
-      throw new NotFoundError(`Song with id ${id} not found`);
-    }
+    const id = r.params['id'];
+    const song = await checkIsExist<Song>(`Song with id ${id} not found`, () =>
+      this.service.getById(id)
+    );
     const response: TResponse = {
-      status: "success",
+      status: 'success',
       data: {
         song,
       },
@@ -32,13 +41,10 @@ class SongHandler implements ISongHandler {
 
   public async postSong(r: R, h: H): Promise<Lf.ReturnValue> {
     const songData = r.payload as SongDTO;
-    const { error } = this.validator.postSchema.validate(songData);
-    if (error) {
-      throw new BadRequestError(`Invalid song data: ${error.message}`);
-    }
+    checkData(songData, this.validator.postSchema);
     const song = await this.service.save(songData);
     const response: TResponse = {
-      status: "success",
+      status: 'success',
       data: {
         songId: song.id,
       },
@@ -47,32 +53,27 @@ class SongHandler implements ISongHandler {
   }
 
   public async deleteSong(r: R, h: H): Promise<Lf.ReturnValue> {
-    const id = r.params["id"];
-    const song = await this.service.getById(id);
-    if (!song) {
-      throw new NotFoundError(`Song with id ${id} not found`);
-    }
+    const id = r.params['id'];
+    await checkIsExist<Song>(`Song with id ${id} not found`, () =>
+      this.service.getById(id)
+    );
     await this.service.delete(id);
     const response: TResponse = {
-      status: "success",
+      status: 'success',
       message: `Song with id ${id} deleted successfully`,
     };
     return h.response(response).code(200);
   }
 
   public async putSong(r: R, h: H): Promise<Lf.ReturnValue> {
-    const id = r.params["id"];
+    const id = r.params['id'];
     const songData = r.payload as Partial<SongDTO>;
-    const { error } = this.validator.putSchema.validate(songData);
-    if (error) {
-      throw new BadRequestError(`Invalid song data: ${error.message}`);
-    }
-    const updatedSong = await this.service.update(id, songData);
-    if (!updatedSong) {
-      throw new NotFoundError(`Song with id ${id} not found`);
-    }
+    checkData(songData, this.validator.putSchema);
+    await checkIsExist<Song>(`Song with id ${id} not found`, () =>
+      this.service.update(id, songData)
+    );
     const response: TResponse = {
-      status: "success",
+      status: 'success',
       message: `Song with id ${id} updated successfully`,
     };
     return h.response(response).code(200);
@@ -87,7 +88,7 @@ class SongHandler implements ISongHandler {
       songs = await this.service.getAll();
     }
     const response: TResponse = {
-      status: "success",
+      status: 'success',
       data: {
         songs: songs.map((song) => ({
           id: song.id,

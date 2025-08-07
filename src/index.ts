@@ -1,13 +1,13 @@
-import Hapi from "@hapi/hapi";
-import dotenv from "dotenv";
-import type { Request } from "@hapi/hapi";
-import ClientError from "./exception.js";
-import plugins from "./plugins.js";
+import Hapi from '@hapi/hapi';
+import dotenv from 'dotenv';
+import type { Request } from '@hapi/hapi';
+import ClientError from './exception.js';
+import plugins from './plugins.js';
 
 dotenv.config();
 
-const port = process.env["PORT"] || 3000;
-const host = "localhost";
+const port = process.env['PORT'] || 3000;
+const host = 'localhost';
 
 const serverConf: Hapi.ServerOptions = {
   port,
@@ -17,20 +17,17 @@ const serverConf: Hapi.ServerOptions = {
 const errorHandler = (r: Request, h: Hapi.ResponseToolkit) => {
   const response = r.response;
   if (response instanceof ClientError) {
-    console.error(response);
-    console.log("Response status code:", response.statusCode);
     return h
       .response({
-        status: "fail",
+        status: 'fail',
         message: response.message,
       })
       .code(response.statusCode);
   }
   if (response instanceof Error) {
-    console.error(response);
     return h
       .response({
-        status: "error",
+        status: 'error',
         message: response.message,
       })
       .code(500);
@@ -42,16 +39,16 @@ const errorHandler = (r: Request, h: Hapi.ResponseToolkit) => {
 const init = async () => {
   const server = Hapi.server(serverConf);
 
-  server.ext("onPreResponse", errorHandler);
+  server.ext('onPreResponse', errorHandler);
   for (const plugin of plugins) {
     await server.register(plugin);
   }
 
   server.route({
-    method: "GET",
-    path: "/",
+    method: 'GET',
+    path: '/',
     handler: (_request, h) => {
-      return h.response("Hello, OpenMusic!");
+      return h.response('Hello, OpenMusic!');
     },
   });
 

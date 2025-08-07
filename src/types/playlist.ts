@@ -1,9 +1,14 @@
-import type { IActivityService } from "./activity.js";
-import type { ICollabService } from "./collab.js";
-import type { IPlaylistServiceCoord } from "./musicCoord.js";
-import type { IServiceSong, Song } from "./songs.js";
-import type { Request as R, ResponseToolkit as H, Lifecycle as Lf } from "@hapi/hapi";
-import type { IUserService } from "./users.js";
+import type { IActivityService } from './activity.js';
+import type { ICollabService } from './collab.js';
+import type { IPlaylistServiceCoord } from './musicCoord.js';
+import type { IServiceSong, Song } from './songs.js';
+import type {
+  Request as R,
+  ResponseToolkit as H,
+  Lifecycle as Lf,
+} from '@hapi/hapi';
+import type { IUserService } from './users.js';
+import type { IAuthorizationService } from './authorization.js';
 
 export type TPlaylistDTO = {
   name: string;
@@ -25,7 +30,8 @@ export type TPlaylistServiceDependency = {
   musicService: IPlaylistServiceCoord;
   activityService: IActivityService;
   songService: IServiceSong;
-  userService: IUserService; // Optional, if needed for user-related operations
+  userService: IUserService;
+  authorizationService: IAuthorizationService;
 };
 
 export interface IPlayListService {
@@ -33,7 +39,10 @@ export interface IPlayListService {
   getAll: (owner: string) => Promise<TPLaylist[]>;
   delete: (id: string) => Promise<TPLaylist>;
   getById: (id: string) => Promise<TPLaylist | null>;
-  savePlaylistSong: (playlistId: string, songId: string) => Promise<TJPlaylistSongs>;
+  savePlaylistSong: (
+    playlistId: string,
+    songId: string
+  ) => Promise<TJPlaylistSongs>;
   deletePlaylistSong: (playlistId: string, songId: string) => Promise<void>;
   findManyPlaylist: (ids: string[]) => Promise<TPLaylist[]>;
 }
