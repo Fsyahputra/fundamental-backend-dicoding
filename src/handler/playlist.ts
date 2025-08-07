@@ -6,11 +6,7 @@ import type {
   TPlaylistServiceDependency,
 } from '../types/playlist.js';
 import validationObj from '../schema/playlists.js';
-import {
-  BadRequestError,
-  ForbiddenError,
-  NotFoundError,
-} from '../exception.js';
+import { ForbiddenError, NotFoundError } from '../exception.js';
 import type { TResponse } from '../types/shared.js';
 import type {
   Request as R,
@@ -28,100 +24,66 @@ import type {
 } from '../types/activity.js';
 import type { IServiceSong } from '../types/songs.js';
 import type { IUserService } from '../types/users.js';
-import { checkData } from '../utils.js';
+import { checkData, checkIsExist } from '../utils.js';
 import type { IAuthorizationService } from '../types/authorization.js';
 
 class PlaylistHandler implements IPlaylistHandler {
   private validator = validationObj;
-  private playlistService: IPlayListService;
-  private collaborativePlaylistService: ICollabService;
-  private musicService: IPlaylistServiceCoord;
-  private activityService: IActivityService;
-  private songService: IServiceSong;
-  private userService: IUserService;
-  private authorizationService: IAuthorizationService;
+  private playlist: IPlayListService;
+  private collaborative: ICollabService;
+  private music: IPlaylistServiceCoord;
+  private activity: IActivityService;
+  private song: IServiceSong;
+  private user: IUserService;
+  private authorization: IAuthorizationService;
 
-  constructor(playlistDependency: TPlaylistServiceDependency) {
-    this.playlistService = playlistDependency.playlistService;
-    this.collaborativePlaylistService =
-      playlistDependency.collaborativePlaylistService;
-    this.musicService = playlistDependency.musicService;
-    this.activityService = playlistDependency.activityService;
-    this.songService = playlistDependency.songService;
-    this.userService = playlistDependency.userService;
-    this.authorizationService = playlistDependency.authorizationService;
-
+  constructor(deps: TPlaylistServiceDependency) {
+    this.playlist = deps.playlistService;
+    this.collaborative = deps.collaborativePlaylistService;
+    this.music = deps.musicService;
+    this.activity = deps.activityService;
+    this.song = deps.songService;
+    this.user = deps.userService;
+    this.authorization = deps.authorizationService;
     autoBind(this);
   }
 
-  private async assertPlaylistAccess(
-    playlistId: string,
-    userId: string,
-    onNotFound: (id: string) => Error
-  ): Promise<TPLaylist> {
-    const playlist = await this.playlistService.getById(playlistId);
-    if (!playlist) {
-      throw onNotFound(playlistId);
-    }
-    await this.ensureOwnerOrCollaborator(playlistId, userId);
-    return playlist;
+  private async getUserPlaylistIds(userId: string): Promise<string[]> {
+    const ownerPlaylist = await this.playlist.getAll(userId);
+    const collaborativePlaylists =
+      await this.collaborative.getPlaylistIdByUserId(userId);
+    const ownerPlaylistIds = ownerPlaylist.map((playlist) => playlist.id);
+    return ownerPlaylistIds.concat(collaborativePlaylists);
   }
 
-  private async ensureOwnerOrCollaborator(
-    playlistId: string,
-    userId: string
-  ): Promise<void> {
-    const playlist = await this.playlistService.getById(playlistId);
-    if (!playlist) {
-      throw new NotFoundError(`Playlist with id ${playlistId} not found`);
-    }
-    const collaboratorIds =
-      (await this.collaborativePlaylistService.getUserIdByPlaylistId(
-        playlistId
-      )) ?? [];
-    if (playlist.owner !== userId && !collaboratorIds.includes(userId)) {
-      throw new ForbiddenError(
-        `You do not have permission to access this playlist`
-      );
-    }
+  private async getPlaylistOwnerUsername(
+    playlist: TPlaylistDTO[]
+  ): Promise<string[]> {
+    const users = await this.user.getManyByIds(playlist.map((p) => p.owner));
+    const userMap = new Map(users.map((user) => [user.id, user.username]));
+    return playlist.map((p) => userMap.get(p.owner) || '');
   }
 
-  private async getAccessiblePlaylistOrNotFound(
-    playlistId: string,
-    userId: string
-  ): Promise<TPLaylist> {
-    const playlist = await this.assertPlaylistAccess(
-      playlistId,
-      userId,
-      (id) => new NotFoundError(`Playlist with id ${id} not found`)
-    );
-    return playlist;
-  }
-
-  private async getAccessiblePlaylistOrForbidden(
-    playlistId: string,
-    userId: string
-  ): Promise<TPLaylist> {
-    const playlist = await this.assertPlaylistAccess(
-      playlistId,
-      userId,
-      (id) =>
-        new ForbiddenError(
-          `You do not have permission to access playlist ${id}`
-        )
-    );
-    return playlist;
+  private async mapPlaylistWithOwner(
+    playlist: TPLaylist[],
+    usernames: string[]
+  ): Promise<any[]> {
+    return playlist.map((p, index) => ({
+      id: p.id,
+      name: p.name,
+      username: usernames[index],
+    }));
   }
 
   public async postPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
     const { name } = r.payload as { name: string };
-    const ownerId = this.authorizationService.getUserIdFromRequest(r);
+    const ownerId = this.authorization.getUserIdFromRequest(r);
     const playlistData: TPlaylistDTO = {
       name,
       owner: ownerId,
     };
     checkData(playlistData, this.validator.postSchema);
-    const playlist = await this.playlistService.save(playlistData);
+    const playlist = await this.playlist.save(playlistData);
     const response: TResponse = {
       status: 'success',
       data: {
@@ -132,25 +94,15 @@ class PlaylistHandler implements IPlaylistHandler {
   }
 
   public async getPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
-    const ownerId = this.authorizationService.getUserIdFromRequest(r);
-    const ownerPlaylists = await this.playlistService.getAll(ownerId);
-    const collaborativePlaylists =
-      await this.collaborativePlaylistService.getPlaylistIdByUserId(ownerId);
-    const ownerPlaylistIds = ownerPlaylists.map((playlist) => playlist.id);
-    const userPlaylists = ownerPlaylistIds.concat(collaborativePlaylists);
-    const playlists = await this.playlistService.findManyPlaylist(
-      userPlaylists
+    const ownerId = this.authorization.getUserIdFromRequest(r);
+    const ids = await this.getUserPlaylistIds(ownerId);
+    const playlists = await this.playlist.findManyPlaylist(ids);
+    const usernames = await this.getPlaylistOwnerUsername(playlists);
+    const mappedPlaylist = await this.mapPlaylistWithOwner(
+      playlists,
+      usernames
     );
-    const ownerIds = playlists.map((playlist) => playlist.owner);
-    const accounts = await this.userService.getManyByIds(ownerIds);
-    const accountUsernames = new Map(
-      accounts.map((account) => [account.id, account.username])
-    );
-    const mappedPlaylist = playlists.map((playlist) => ({
-      id: playlist.id,
-      name: playlist.name,
-      username: accountUsernames.get(playlist.owner),
-    }));
+
     const response: TResponse = {
       status: 'success',
       data: {
@@ -163,21 +115,18 @@ class PlaylistHandler implements IPlaylistHandler {
   public async postSongToPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
     const playlistId = r.params['id'];
     const { songId } = r.payload as { songId: string };
-    const id = this.authorizationService.getUserIdFromRequest(r);
-    if (!playlistId || !songId) {
-      throw new BadRequestError('Playlist ID and Song ID are required');
-    }
-
-    if (typeof playlistId !== 'string' || typeof songId !== 'string') {
-      throw new BadRequestError('Playlist ID and Song ID must be strings');
-    }
-    await this.getAccessiblePlaylistOrNotFound(playlistId, id);
-    await this.musicService.addSongToPlaylist(playlistId, songId);
-    await this.activityService.addActivity({
+    const id = this.authorization.getUserIdFromRequest(r);
+    checkData({ playlistId, songId }, this.validator.postSongToPlaylistSchema);
+    await this.authorization.assertCollabPlaylistAccess(
+      id,
+      playlistId,
+      (id) => new NotFoundError(`Playlist with id ${id} not found`)
+    );
+    await this.music.addSongToPlaylist(playlistId, songId);
+    await this.activity.addActivity({
       userId: id,
       playlistId,
       songId,
-      action: 'add',
     });
 
     const response: TResponse = {
@@ -189,19 +138,16 @@ class PlaylistHandler implements IPlaylistHandler {
 
   public async getSongsByPlaylistId(r: R, h: H): Promise<Lf.ReturnValue> {
     const playlistId = r.params['id'];
-    const userId = this.authorizationService.getUserIdFromRequest(r);
-    const playlist = await this.getAccessiblePlaylistOrNotFound(
+    const userId = this.authorization.getUserIdFromRequest(r);
+    const playlist = await this.authorization.assertCollabPlaylistAccess(
+      userId,
       playlistId,
-      userId
+      (id) => new NotFoundError(`Playlist with id ${id} not found`)
     );
-    const ownerAccount = await this.userService.getById(playlist.owner);
-    if (!ownerAccount) {
-      throw new NotFoundError(`Owner with id ${playlist.owner} not found`);
-    }
-    const username = ownerAccount.username;
-    const playlistSongs = await this.musicService.getSongsInPlaylist(
-      playlistId
+    const { username } = await checkIsExist('Owner account not found', () =>
+      this.user.getById(playlist.owner)
     );
+    const playlistSongs = await this.music.getSongsInPlaylist(playlistId);
     const songs = playlistSongs.map((playlistSong) => ({
       id: playlistSong.song.id,
       title: playlistSong.song.title,
@@ -223,20 +169,9 @@ class PlaylistHandler implements IPlaylistHandler {
 
   public async deletePlaylistById(r: R, h: H): Promise<Lf.ReturnValue> {
     const playlistId = r.params['id'];
-
-    const { id } = r.auth.credentials.user as TAuthObj;
-    const playlist = await this.playlistService.getById(playlistId);
-    if (!playlist) {
-      throw new ForbiddenError(`Playlist with id ${playlistId} not found`);
-    }
-
-    if (playlist.owner !== id) {
-      throw new ForbiddenError(
-        `You do not have permission to delete this playlist`
-      );
-    }
-
-    await this.playlistService.delete(playlistId);
+    const userId = this.authorization.getUserIdFromRequest(r);
+    await this.authorization.assertDeletePlaylistAccess(userId, playlistId);
+    await this.playlist.delete(playlistId);
     const response: TResponse = {
       status: 'success',
       message: `Playlist with id ${playlistId} deleted successfully`,
@@ -247,15 +182,17 @@ class PlaylistHandler implements IPlaylistHandler {
   public async deleteSongFromPlaylistId(r: R, h: H): Promise<Lf.ReturnValue> {
     const playlistId = r.params['id'];
     const { songId } = r.payload as { songId: string };
-    const userId = this.authorizationService.getUserIdFromRequest(r);
-    await this.getAccessiblePlaylistOrForbidden(playlistId, userId);
-
-    await this.musicService.removeSongFromPlaylist(playlistId, songId);
-    await this.activityService.addActivity({
+    const userId = this.authorization.getUserIdFromRequest(r);
+    await this.authorization.assertCollabPlaylistAccess(
+      userId,
+      playlistId,
+      (id) => new ForbiddenError(`Playlist with id ${id} not found`)
+    );
+    await this.music.removeSongFromPlaylist(playlistId, songId);
+    await this.activity.deleteActivity({
       userId,
       playlistId,
       songId,
-      action: 'delete',
     });
     const response: TResponse = {
       status: 'success',
@@ -269,7 +206,7 @@ class PlaylistHandler implements IPlaylistHandler {
     r: R
   ): Promise<TActivityPresentation> {
     const username = (r.auth.credentials.user as TAuthObj).username;
-    const { title } = await this.songService.getById(activity.songId);
+    const { title } = await this.song.getById(activity.songId);
     return {
       username,
       title,
@@ -280,7 +217,7 @@ class PlaylistHandler implements IPlaylistHandler {
 
   public async getPlaylistActivity(r: R, h: H): Promise<Lf.ReturnValue> {
     const playlistId = r.params['id'];
-    const activities = await this.activityService.getActivitiesByPlaylistId(
+    const activities = await this.activity.getActivitiesByPlaylistId(
       playlistId
     );
     const activityPresentations = await Promise.all(
@@ -293,8 +230,12 @@ class PlaylistHandler implements IPlaylistHandler {
         `No activities found for playlist with id ${playlistId}`
       );
     }
-    const userId = this.authorizationService.getUserIdFromRequest(r);
-    await this.getAccessiblePlaylistOrForbidden(playlistId, userId);
+    const userId = this.authorization.getUserIdFromRequest(r);
+    await this.authorization.assertCollabPlaylistAccess(
+      userId,
+      playlistId,
+      (id) => new ForbiddenError(`Playlist with id ${id} not found`)
+    );
     const response: TResponse = {
       status: 'success',
       data: {

@@ -1,7 +1,11 @@
 import type { Request as R } from '@hapi/hapi';
 import type { IAuthorizationService } from '../types/authorization.js';
 import type { TAuthObj } from '../types/auth.js';
-import { NotFoundError, UnauthorizedError } from '../exception.js';
+import {
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from '../exception.js';
 import type { IPlayListService, TPLaylist } from '../types/playlist.js';
 import type { ICollabService } from '../types/collab.js';
 
@@ -46,29 +50,39 @@ class AuthorizationService implements IAuthorizationService {
     return user.id;
   }
 
-  public async assertPlaylistAccess(
+  public async assertCollabPlaylistAccess(
     userId: string,
     playlistId: string,
     onNotFound: (id: string) => Error = (id) =>
       new NotFoundError(`Playlist with id ${id} not found`)
   ): Promise<TPLaylist> {
     const playlist = await this.playlistService.getById(playlistId);
-
     if (!playlist) {
       throw onNotFound(playlistId);
     }
     const isOwner = await this.ensureOwner(userId, playlist);
-    if (isOwner) {
-      return playlist;
-    }
     const isCollaborator = await this.ensureCollaborator(userId, playlistId);
-
-    if (isCollaborator) {
-      return playlist;
+    if (!isCollaborator && !isOwner) {
+      throw new ForbiddenError(
+        `User with id ${userId} does not have access to playlist with id ${playlistId}`
+      );
     }
-    throw new UnauthorizedError(
-      `User with id ${userId} does not have access to playlist with id ${playlistId}`
-    );
+    return playlist;
+  }
+
+  public async assertDeletePlaylistAccess(
+    userId: string,
+    playlistId: string
+  ): Promise<void> {
+    const playlist = await this.playlistService.getById(playlistId);
+    if (!playlist) {
+      throw new ForbiddenError(`Playlist with id ${playlistId} not found`);
+    }
+    if (playlist.owner !== userId) {
+      throw new ForbiddenError(
+        `User with id ${userId} does not have permission to delete playlist with id ${playlistId}`
+      );
+    }
   }
 }
 

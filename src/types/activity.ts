@@ -2,7 +2,7 @@ export type TActivityDTO = {
   userId: string;
   playlistId: string;
   songId: string;
-  action: "add" | "delete";
+  action: 'add' | 'delete';
 };
 
 export type TActivity = TActivityDTO & {
@@ -13,11 +13,15 @@ export type TActivity = TActivityDTO & {
 export type TActivityPresentation = {
   username: string;
   title: string;
-  action: "add" | "delete";
+  action: 'add' | 'delete';
   time: string;
 };
 
 export interface IActivityService {
-  addActivity: (activity: TActivityDTO) => Promise<TActivity>;
+  // insertActivity: (activity: TActivityDTO) => Promise<TActivity>;
   getActivitiesByPlaylistId: (playlistId: string) => Promise<TActivity[]>;
+  addActivity: (activity: Omit<TActivityDTO, 'action'>) => Promise<TActivity>;
+  deleteActivity: (
+    activity: Omit<TActivityDTO, 'action'>
+  ) => Promise<TActivity>;
 }
