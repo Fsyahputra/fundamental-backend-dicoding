@@ -12,10 +12,12 @@ import type {
 } from '@hapi/hapi';
 import { type TUser, type IUserService } from '../types/users.js';
 import { type TPLaylist, type IPlayListService } from '../types/playlist.js';
-import { checkIsExist } from '../utils.js';
+import { checkData, checkIsExist } from '../utils.js';
 import type { IAuthorizationService } from '../types/authorization.js';
+import collabValidator from '../schema/collab.js';
 
 class CollabHandler implements ICollabhandler {
+  private validator = collabValidator;
   private collabService: ICollabService;
   private userService: IUserService;
   private playlistService: IPlayListService;
@@ -38,15 +40,18 @@ class CollabHandler implements ICollabhandler {
   }
 
   public async postCollab(r: R, h: H): Promise<Lf.ReturnValue> {
-    const { playlistId, userId } = r.payload as TCollabDTO;
-    const collabData: TCollabDTO = { playlistId, userId };
+    const collabData = checkData<TCollabDTO>(
+      r.payload,
+      this.validator.postCollab
+    );
     const id = this.authorizationService.getUserIdFromRequest(r);
     const playlist = await checkIsExist<TPLaylist>(
-      `Playlist with id ${playlistId} not found`,
-      () => this.playlistService.getById(playlistId)
+      `Playlist with id ${collabData.playlistId} not found`,
+      () => this.playlistService.getById(collabData.playlistId)
     );
-    await checkIsExist<TUser>(`User with id ${userId} not found`, () =>
-      this.userService.getById(userId)
+    await checkIsExist<TUser>(
+      `User with id ${collabData.userId} not found`,
+      () => this.userService.getById(collabData.userId)
     );
     this.authorizationService.ensureOwnerShip(id, playlist);
     const collab = await this.collabService.addCollab(collabData);
@@ -55,12 +60,14 @@ class CollabHandler implements ICollabhandler {
   }
 
   public async deleteCollab(r: R, h: H): Promise<Lf.ReturnValue> {
-    const { playlistId, userId } = r.payload as TCollabDTO;
+    const collabData = checkData<TCollabDTO>(
+      r.payload,
+      this.validator.deleteCollab
+    );
     const id = this.authorizationService.getUserIdFromRequest(r);
-    const collabData: TCollabDTO = { playlistId, userId };
     const playlist = await checkIsExist<TPLaylist>(
-      `Playlist with id ${playlistId} not found`,
-      () => this.playlistService.getById(playlistId)
+      `Playlist with id ${collabData.playlistId} not found`,
+      () => this.playlistService.getById(collabData.playlistId)
     );
     this.authorizationService.ensureOwnerShip(id, playlist);
     const collab = await this.collabService.removeCollab(collabData);

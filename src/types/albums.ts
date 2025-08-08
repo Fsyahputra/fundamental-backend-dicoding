@@ -18,7 +18,7 @@ export interface IServiceAlbum {
 }
 
 export interface IAlbumHandler {
-  getAlbumByid: (r: R, h: H) => Promise<Lf.ReturnValue>;
+  getAlbumById: (r: R, h: H) => Promise<Lf.ReturnValue>;
   postAlbum: (r: R, h: H) => Promise<Lf.ReturnValue>;
   putAlbum: (r: R, h: H) => Promise<Lf.ReturnValue>;
   deleteAlbum: (r: R, h: H) => Promise<Lf.ReturnValue>;

@@ -1,19 +1,19 @@
-import type { ServerRoute } from "@hapi/hapi";
-import type { IAlbumHandler } from "../types/albums.ts";
+import type { ServerRoute } from '@hapi/hapi';
+import type { IAlbumHandler } from '../types/albums.ts';
 
-const base: string = "/albums";
+const base: string = '/albums';
 
 const albumRoutes = (handler: IAlbumHandler): ServerRoute[] => [
   {
-    method: "GET",
+    method: 'GET',
     path: `${base}/{id}`,
-    handler: handler.getAlbumByid,
+    handler: handler.getAlbumById,
     options: {
       auth: false,
     },
   },
   {
-    method: "POST",
+    method: 'POST',
     path: base,
     handler: handler.postAlbum,
     options: {
@@ -21,7 +21,7 @@ const albumRoutes = (handler: IAlbumHandler): ServerRoute[] => [
     },
   },
   {
-    method: "PUT",
+    method: 'PUT',
     path: `${base}/{id}`,
     handler: handler.putAlbum,
     options: {
@@ -29,7 +29,7 @@ const albumRoutes = (handler: IAlbumHandler): ServerRoute[] => [
     },
   },
   {
-    method: "DELETE",
+    method: 'DELETE',
     path: `${base}/{id}`,
     handler: handler.deleteAlbum,
     options: {

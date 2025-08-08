@@ -34,8 +34,16 @@ class AlbumHandler implements IAlbumHandler {
     autoBind(this);
   }
 
-  public async getAlbumByid(r: R, h: H): Promise<Lf.ReturnValue> {
+  private getAlbumIdFromRequest(r: R): string {
     const id = r.params['id'];
+    if (!id) {
+      throw new Error('Album ID is required');
+    }
+    return id;
+  }
+
+  public async getAlbumById(r: R, h: H): Promise<Lf.ReturnValue> {
+    const id = this.getAlbumIdFromRequest(r);
     const album = await checkIsExist<Album>(
       `Album with id ${id} not found`,
       () => this.service.getById(id)
@@ -46,17 +54,18 @@ class AlbumHandler implements IAlbumHandler {
   }
 
   public async postAlbum(r: R, h: H): Promise<Lf.ReturnValue> {
-    const albumData = r.payload as AlbumDTO;
-    checkData(albumData, this.validator.postSchema);
+    const albumData = checkData<AlbumDTO>(r.payload, this.validator.postSchema);
     const album = await this.service.save(albumData);
     const response = this.presentationService.postAlbum(album);
     return h.response(response).code(201);
   }
 
   public async putAlbum(r: R, h: H): Promise<Lf.ReturnValue> {
-    const id = r.params['id'];
-    const albumData = r.payload as Partial<AlbumDTO>;
-    checkData(albumData, this.validator.putSchema);
+    const id = this.getAlbumIdFromRequest(r);
+    const albumData = checkData<Partial<AlbumDTO>>(
+      r.payload,
+      this.validator.putSchema
+    );
     const album = await checkIsExist<Album>(
       `Album with id ${id} not found`,
       () => this.service.update(id, albumData)
@@ -66,7 +75,7 @@ class AlbumHandler implements IAlbumHandler {
   }
 
   public async deleteAlbum(r: R, h: H): Promise<Lf.ReturnValue> {
-    const id = r.params['id'];
+    const id = this.getAlbumIdFromRequest(r);
     const album = await checkIsExist<Album>(
       `Album with id ${id} not found`,
       () => this.service.delete(id)
