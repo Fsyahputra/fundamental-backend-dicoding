@@ -21,17 +21,14 @@ class AuthorizationService implements IAuthorizationService {
     this.collabService = collabService;
   }
 
-  private async ensureOwner(
-    userId: string,
-    playlist: TPLaylist
-  ): Promise<boolean> {
+  private ensureOwner(userId: string, playlist: TPLaylist): boolean {
     if (playlist.owner !== userId) {
       return false;
     }
     return true;
   }
 
-  private async ensureCollaborator(
+  private async ensureCollab(
     userId: string,
     playlistId: string
   ): Promise<boolean> {
@@ -60,8 +57,8 @@ class AuthorizationService implements IAuthorizationService {
     if (!playlist) {
       throw onNotFound(playlistId);
     }
-    const isOwner = await this.ensureOwner(userId, playlist);
-    const isCollaborator = await this.ensureCollaborator(userId, playlistId);
+    const isOwner = this.ensureOwner(userId, playlist);
+    const isCollaborator = await this.ensureCollab(userId, playlistId);
     if (!isCollaborator && !isOwner) {
       throw new ForbiddenError(
         `User with id ${userId} does not have access to playlist with id ${playlistId}`
@@ -81,6 +78,27 @@ class AuthorizationService implements IAuthorizationService {
     if (playlist.owner !== userId) {
       throw new ForbiddenError(
         `User with id ${userId} does not have permission to delete playlist with id ${playlistId}`
+      );
+    }
+  }
+
+  public ensureOwnerShip(userId: string, playlist: TPLaylist): void {
+    const isOwner = this.ensureOwner(userId, playlist);
+    if (!isOwner) {
+      throw new ForbiddenError(
+        `User with id ${userId} is not the owner of playlist with id ${playlist.id}`
+      );
+    }
+  }
+
+  public async ensureCollaboration(
+    userId: string,
+    playlistId: string
+  ): Promise<void> {
+    const isCollaborator = await this.ensureCollab(userId, playlistId);
+    if (!isCollaborator) {
+      throw new ForbiddenError(
+        `User with id ${userId} is not a collaborator of playlist with id ${playlistId}`
       );
     }
   }

@@ -1,4 +1,9 @@
-import type { Request as R, ResponseToolkit as H, Lifecycle as Lf } from "@hapi/hapi";
+import type {
+  Request as R,
+  ResponseToolkit as H,
+  Lifecycle as Lf,
+} from '@hapi/hapi';
+import type { TDataResponse, TMessageResponse } from './shared.js';
 
 export type TCollabDTO = {
   playlistId: string;
@@ -19,4 +24,13 @@ export interface ICollabService {
 export interface ICollabhandler {
   postCollab: (r: R, h: H) => Promise<Lf.ReturnValue>;
   deleteCollab: (r: R, h: H) => Promise<Lf.ReturnValue>;
+}
+
+export type TPostCollabPresentation = {
+  collaborationId: string;
+};
+
+export interface ICollabPresentation {
+  postCollab: (collab: TCollab) => TDataResponse<TPostCollabPresentation>;
+  deleteCollab: (collab: TCollab) => TMessageResponse;
 }

@@ -9,4 +9,6 @@ export interface IAuthorizationService {
     onNotFount?: (id: string) => Error
   ) => Promise<TPLaylist>;
   assertDeletePlaylistAccess(userId: string, playlistId: string): Promise<void>;
+  ensureOwnerShip(userId: string, playlist: TPLaylist): void;
+  ensureCollaboration(userId: string, playlistId: string): Promise<void>;
 }

@@ -1,5 +1,9 @@
-import type { TSchemaObject } from "./shared.js";
-import type { Request as R, ResponseToolkit as H, Lifecycle as Lf } from "@hapi/hapi";
+import type { TSchemaObject } from './shared.js';
+import type {
+  Request as R,
+  ResponseToolkit as H,
+  Lifecycle as Lf,
+} from '@hapi/hapi';
 
 export interface IServiceSong {
   save: (song: SongDTO) => Promise<Song>;
@@ -32,6 +36,8 @@ export type SongDTO = {
   duration?: number | null;
   albumId?: string | null;
 };
+
+export type SongPresentation = Omit<Song, 'albumId'>;
 
 export type Song = SongDTO & { id: string };
 

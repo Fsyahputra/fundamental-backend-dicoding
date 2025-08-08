@@ -7,6 +7,7 @@ import PlaylistHandler from '../handler/playlist.js';
 import type { TPlaylistServiceDependency } from '../types/playlist.js';
 import SongHandler from '../handler/songs.js';
 import UserHandler from '../handler/user.js';
+import presentationObject from './presentation.js';
 
 const playListDeps: TPlaylistServiceDependency = {
   activityService: serviceObject.activityService,
@@ -21,12 +22,15 @@ const playListDeps: TPlaylistServiceDependency = {
 const albumHandler = new AlbumHandler(
   serviceObject.albumService,
   albumValidation,
-  serviceObject.songService
+  serviceObject.songService,
+  presentationObject.album
 );
 const collabHandler = new CollabHandler(
   serviceObject.collabService,
   serviceObject.userService,
-  serviceObject.playlistService
+  serviceObject.playlistService,
+  serviceObject.authorizationService,
+  presentationObject.collab
 );
 const playlistHandler = new PlaylistHandler(playListDeps);
 const songHandler = new SongHandler(serviceObject.songService, songValidation);

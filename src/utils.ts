@@ -12,7 +12,7 @@ export const checkData = (data: any, schema: Joi.ObjectSchema): void => {
 // Throws NotFoundError if the value is null or undefined
 export const checkIsExist = async <T>(
   msg: string = 'Data not found',
-  func: () => Promise<T | null | undefined>
+  func: () => Promise<T | null>
 ): Promise<T> => {
   const result = await func();
   if (result === null || result === undefined) {
