@@ -1,19 +1,23 @@
-import type { IAuthenticationService, TAuthObj } from "../types/auth.js";
-import jwt, { type SignOptions } from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import type { TAuthCredentials, TAuthResponse } from "../types/auth.js";
-import { BadRequestError, UnauthorizedError } from "../exception.js";
-import type { Pool } from "pg";
-import autoBind from "auto-bind";
+import type { IAuthenticationService, TAuthObj } from '../types/auth.js';
+import jwt, { type SignOptions } from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import type { TAuthCredentials, TAuthResponse } from '../types/auth.js';
+import { BadRequestError, UnauthorizedError } from '../exception.js';
+import type { Pool } from 'pg';
+import autoBind from 'auto-bind';
 
 class AuthService implements IAuthenticationService {
   private readonly accessTokenSecret: string;
   private readonly refreshTokenSecret: string;
   private pool: Pool;
-  private accessTokenExpiration: SignOptions = { expiresIn: "15m" };
-  private refreshTokenExpiration: SignOptions = { expiresIn: "7d" };
+  private accessTokenExpiration: SignOptions = { expiresIn: '15m' };
+  private refreshTokenExpiration: SignOptions = { expiresIn: '7d' };
 
-  constructor(accessTokenSecret: string, refreshTokenSecret: string, pool: Pool) {
+  constructor(
+    accessTokenSecret: string,
+    refreshTokenSecret: string,
+    pool: Pool
+  ) {
     this.accessTokenSecret = accessTokenSecret;
     this.refreshTokenSecret = refreshTokenSecret;
     this.pool = pool;
@@ -58,12 +62,12 @@ class AuthService implements IAuthenticationService {
       return jwt.verify(token, this.refreshTokenSecret) as TAuthObj;
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new BadRequestError("Invalid token");
+        throw new BadRequestError('Invalid token');
       }
 
       if (error instanceof jwt.TokenExpiredError) {
         this.deleteRefreshToken(token);
-        throw new UnauthorizedError("Token expired");
+        throw new UnauthorizedError('Token expired');
       }
 
       throw error;
@@ -71,27 +75,43 @@ class AuthService implements IAuthenticationService {
   }
 
   public async authenticate(cred: TAuthCredentials): Promise<TAuthResponse> {
-    const isPasswordValid = await bcrypt.compare(cred.password, cred.hashedPassword);
+    const isPasswordValid = await bcrypt.compare(
+      cred.password,
+      cred.hashedPassword
+    );
     if (!isPasswordValid) {
-      throw new UnauthorizedError("Invalid username or password");
+      throw new UnauthorizedError('Invalid username or password');
     }
-    const accessToken = jwt.sign({ id: cred.userId, username: cred.username }, this.accessTokenSecret, this.accessTokenExpiration);
-    const refreshToken = jwt.sign({ id: cred.userId, username: cred.username }, this.refreshTokenSecret, this.refreshTokenExpiration);
+    const accessToken = jwt.sign(
+      { id: cred.userId, username: cred.username },
+      this.accessTokenSecret,
+      this.accessTokenExpiration
+    );
+    const refreshToken = jwt.sign(
+      { id: cred.userId, username: cred.username },
+      this.refreshTokenSecret,
+      this.refreshTokenExpiration
+    );
     await this.saveRefreshToken(refreshToken);
     return { accessToken, refreshToken };
   }
 
   public async refreshToken(token: string): Promise<string> {
     const decoded = await this.validateToken(token);
-    const newAccessToken = jwt.sign({ id: decoded.id, username: decoded.username }, this.accessTokenSecret, this.accessTokenExpiration);
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, username: decoded.username },
+      this.accessTokenSecret,
+      this.accessTokenExpiration
+    );
     return newAccessToken;
   }
 
   public async invalidateToken(token: string): Promise<void> {
     const existingToken = await this.getRefreshToken(token);
     if (!existingToken) {
-      throw new BadRequestError("Refresh token not found");
+      throw new BadRequestError('Refresh token not found');
     }
+
     await this.deleteRefreshToken(token);
   }
 
@@ -100,10 +120,10 @@ class AuthService implements IAuthenticationService {
       return jwt.verify(token, this.accessTokenSecret) as TAuthObj;
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new UnauthorizedError("Invalid access token");
+        throw new UnauthorizedError('Invalid access token');
       }
       if (error instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedError("Access token expired");
+        throw new UnauthorizedError('Access token expired');
       }
       throw error;
     }

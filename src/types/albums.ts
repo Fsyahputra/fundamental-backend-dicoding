@@ -8,7 +8,7 @@ import type {
   ResponseToolkit as H,
   Lifecycle as Lf,
 } from '@hapi/hapi';
-import type { Song, SongPresentation } from './songs.js';
+import type { Song, TSongPresentation } from './songs.js';
 
 export interface IServiceAlbum {
   save: (album: AlbumDTO) => Promise<Album>;
@@ -26,7 +26,7 @@ export interface IAlbumHandler {
 
 export type TGetAlbumByIdPresentation = {
   album: Album & {
-    songs: SongPresentation[];
+    songs: TSongPresentation[];
   };
 };
 

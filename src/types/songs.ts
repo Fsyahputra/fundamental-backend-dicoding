@@ -1,4 +1,8 @@
-import type { TSchemaObject } from './shared.js';
+import type {
+  TDataResponse,
+  TMessageResponse,
+  TSchemaObject,
+} from './shared.js';
 import type {
   Request as R,
   ResponseToolkit as H,
@@ -37,8 +41,22 @@ export type SongDTO = {
   albumId?: string | null;
 };
 
-export type SongPresentation = Omit<Song, 'albumId'>;
+export type TSongPresentation = Omit<Song, 'albumId'>;
+
+export type TGetSongs = {
+  id: string;
+  title: string;
+  performer: string;
+};
 
 export type Song = SongDTO & { id: string };
 
 export interface TSongSchema extends TSchemaObject<SongDTO> {}
+
+export interface ISongPresentation {
+  getSongById: (song: Song) => TDataResponse<{ song: Song }>;
+  postSong: (song: Song) => TDataResponse<{ songId: string }>;
+  putSong: (song: Song) => TMessageResponse;
+  deleteSong: (song: Song) => TMessageResponse;
+  getSongs: (songs: Song[]) => TDataResponse<{ songs: TGetSongs[] }>;
+}

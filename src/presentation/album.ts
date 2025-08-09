@@ -5,10 +5,10 @@ import type {
   TPostAlbumPresentation,
 } from '../types/albums.js';
 import type { TDataResponse, TMessageResponse } from '../types/shared.js';
-import type { Song, SongPresentation } from '../types/songs.js';
+import type { Song, TSongPresentation } from '../types/songs.js';
 
 class AlbumPresentation implements IAlbumPresentation {
-  private mapSongToPresentation(song: Song): SongPresentation {
+  private mapSongToPresentation(song: Song): TSongPresentation {
     return {
       id: song.id,
       title: song.title,

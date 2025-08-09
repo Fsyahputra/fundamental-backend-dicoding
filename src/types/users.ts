@@ -3,6 +3,8 @@ import type {
   ResponseToolkit as H,
   Lifecycle as Lf,
 } from '@hapi/hapi';
+import type { TDataResponse, TMessageResponse } from './shared.js';
+import type { TAuthResponse } from './auth.js';
 
 export type TUserDTO = {
   id?: string;
@@ -27,4 +29,15 @@ export interface IUserHandler {
   authenticateUser: (r: R, h: H) => Promise<Lf.ReturnValue>;
   reAuthenticateUser: (r: R, h: H) => Promise<Lf.ReturnValue>;
   deauthenticateUser: (r: R, h: H) => Promise<Lf.ReturnValue>;
+}
+
+export interface IUserPresentation {
+  registerUser: (user: TUser) => TDataResponse<{ userId: string }>;
+  authenticateUser: (
+    authResponse: TAuthResponse
+  ) => TDataResponse<TAuthResponse>;
+  reAuthenticateUser: (
+    accessToken: string
+  ) => TDataResponse<{ accessToken: string }>;
+  deauthenticateUser: (token: string) => TMessageResponse;
 }

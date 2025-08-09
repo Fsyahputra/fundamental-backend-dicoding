@@ -3,9 +3,9 @@ import type {
   TAuthCredentials,
   TAuthCredentialsDTO,
 } from '../types/auth.js';
-import type { TResponse } from '../types/shared.js';
 import type {
   IUserHandler,
+  IUserPresentation,
   IUserService,
   TUser,
   TUserDTO,
@@ -24,10 +24,16 @@ class UserHandler implements IUserHandler {
   private userService: IUserService;
   private authService: IAuthenticationService;
   private validator = UserValidation;
+  private presentationService: IUserPresentation;
 
-  constructor(userService: IUserService, authService: IAuthenticationService) {
+  constructor(
+    userService: IUserService,
+    authService: IAuthenticationService,
+    presentationService: IUserPresentation
+  ) {
     this.userService = userService;
     this.authService = authService;
+    this.presentationService = presentationService;
     autoBind(this);
   }
 
@@ -43,12 +49,7 @@ class UserHandler implements IUserHandler {
     const userData = r.payload as TUserDTO;
     checkData(userData, this.validator.postSchema);
     const user = await this.userService.save(userData);
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        userId: user.id,
-      },
-    };
+    const response = this.presentationService.registerUser(user);
     return h.response(response).code(201);
   }
 
@@ -62,13 +63,7 @@ class UserHandler implements IUserHandler {
       hashedPassword: user.password,
     };
     const authResponse = await this.authService.authenticate(credData);
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        accessToken: authResponse.accessToken,
-        refreshToken: authResponse.refreshToken,
-      },
-    };
+    const response = this.presentationService.authenticateUser(authResponse);
     return h.response(response).code(201);
   }
 
@@ -78,23 +73,18 @@ class UserHandler implements IUserHandler {
     const newAccessToken = await this.authService.refreshToken(
       refreshToken.refreshToken
     );
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        accessToken: newAccessToken,
-      },
-    };
+    const response =
+      this.presentationService.reAuthenticateUser(newAccessToken);
     return h.response(response).code(200);
   }
 
   public async deauthenticateUser(r: R, h: H): Promise<Lf.ReturnValue> {
-    const refreshToken = r.payload as { refreshToken: string };
-    checkData(refreshToken, this.validator.deleteAuthSchema);
-    await this.authService.invalidateToken(refreshToken.refreshToken);
-    const response: TResponse = {
-      status: 'success',
-      message: 'User successfully deauthenticated',
-    };
+    const { refreshToken } = checkData<{ refreshToken: string }>(
+      r.payload,
+      this.validator.deleteAuthSchema
+    );
+    await this.authService.invalidateToken(refreshToken);
+    const response = this.presentationService.deauthenticateUser(refreshToken);
     return h.response(response).code(200);
   }
 }

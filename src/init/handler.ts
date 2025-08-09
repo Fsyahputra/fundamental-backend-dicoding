@@ -33,10 +33,15 @@ const collabHandler = new CollabHandler(
   presentationObject.collab
 );
 const playlistHandler = new PlaylistHandler(playListDeps);
-const songHandler = new SongHandler(serviceObject.songService, songValidation);
+const songHandler = new SongHandler(
+  serviceObject.songService,
+  songValidation,
+  presentationObject.song
+);
 const userHandler = new UserHandler(
   serviceObject.userService,
-  serviceObject.authService
+  serviceObject.authService,
+  presentationObject.user
 );
 
 const handlers = {

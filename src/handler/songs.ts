@@ -1,8 +1,8 @@
 import autoBind from 'auto-bind';
-import type { TResponse } from '../types/shared.js';
 import type {
   IServiceSong,
   ISongHandler,
+  ISongPresentation,
   queryParams,
   Song,
   SongDTO,
@@ -18,10 +18,16 @@ import { checkData, checkIsExist } from '../utils.js';
 class SongHandler implements ISongHandler {
   private service: IServiceSong;
   private validator: TSongSchema;
+  private presentationService: ISongPresentation;
 
-  constructor(service: IServiceSong, validator: TSongSchema) {
+  constructor(
+    service: IServiceSong,
+    validator: TSongSchema,
+    presentationService: ISongPresentation
+  ) {
     this.service = service;
     this.validator = validator;
+    this.presentationService = presentationService;
     autoBind(this);
   }
 
@@ -30,25 +36,14 @@ class SongHandler implements ISongHandler {
     const song = await checkIsExist<Song>(`Song with id ${id} not found`, () =>
       this.service.getById(id)
     );
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        song,
-      },
-    };
+    const response = this.presentationService.getSongById(song);
     return h.response(response).code(200);
   }
 
   public async postSong(r: R, h: H): Promise<Lf.ReturnValue> {
-    const songData = r.payload as SongDTO;
-    checkData(songData, this.validator.postSchema);
+    const songData = checkData<SongDTO>(r.payload, this.validator.postSchema);
     const song = await this.service.save(songData);
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        songId: song.id,
-      },
-    };
+    const response = this.presentationService.postSong(song);
     return h.response(response).code(201);
   }
 
@@ -58,24 +53,20 @@ class SongHandler implements ISongHandler {
       this.service.getById(id)
     );
     await this.service.delete(id);
-    const response: TResponse = {
-      status: 'success',
-      message: `Song with id ${id} deleted successfully`,
-    };
+    const response = this.presentationService.deleteSong(id);
     return h.response(response).code(200);
   }
 
   public async putSong(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = r.params['id'];
-    const songData = r.payload as Partial<SongDTO>;
-    checkData(songData, this.validator.putSchema);
-    await checkIsExist<Song>(`Song with id ${id} not found`, () =>
+    const songData = checkData<Partial<SongDTO>>(
+      r.payload,
+      this.validator.putSchema
+    );
+    const song = await checkIsExist<Song>(`Song with id ${id} not found`, () =>
       this.service.update(id, songData)
     );
-    const response: TResponse = {
-      status: 'success',
-      message: `Song with id ${id} updated successfully`,
-    };
+    const response = this.presentationService.putSong(song);
     return h.response(response).code(200);
   }
 
@@ -87,16 +78,7 @@ class SongHandler implements ISongHandler {
     } else {
       songs = await this.service.getAll();
     }
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        songs: songs.map((song) => ({
-          id: song.id,
-          title: song.title,
-          performer: song.performer,
-        })),
-      },
-    };
+    const response = this.presentationService.getSongs(songs);
     return h.response(response).code(200);
   }
 }
