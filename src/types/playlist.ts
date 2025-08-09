@@ -1,7 +1,11 @@
-import type { IActivityService } from './activity.js';
+import type {
+  IActivityService,
+  TActivity,
+  TActivityPresentation,
+} from './activity.js';
 import type { ICollabService } from './collab.js';
 import type { IPlaylistServiceCoord } from './musicCoord.js';
-import type { IServiceSong, Song } from './songs.js';
+import type { IServiceSong, Song, TGetSongs } from './songs.js';
 import type {
   Request as R,
   ResponseToolkit as H,
@@ -9,18 +13,19 @@ import type {
 } from '@hapi/hapi';
 import type { IUserService } from './users.js';
 import type { IAuthorizationService } from './authorization.js';
+import type { TDataResponse, TMessageResponse } from './shared.js';
 
 export type TPlaylistDTO = {
   name: string;
   owner: string;
 };
 
-export type TPLaylist = TPlaylistDTO & {
+export type TPlaylist = TPlaylistDTO & {
   id: string;
 };
 
 export type TPlaylistSong = {
-  playlist: TPLaylist;
+  playlist: TPlaylist;
   songs: Song[];
 };
 
@@ -32,19 +37,20 @@ export type TPlaylistServiceDependency = {
   songService: IServiceSong;
   userService: IUserService;
   authorizationService: IAuthorizationService;
+  presentationService: IPlaylistPresentation;
 };
 
 export interface IPlayListService {
-  save: (playList: TPlaylistDTO) => Promise<TPLaylist>;
-  getAll: (owner: string) => Promise<TPLaylist[]>;
-  delete: (id: string) => Promise<TPLaylist>;
-  getById: (id: string) => Promise<TPLaylist | null>;
+  save: (playList: TPlaylistDTO) => Promise<TPlaylist>;
+  getAll: (owner: string) => Promise<TPlaylist[]>;
+  delete: (id: string) => Promise<TPlaylist>;
+  getById: (id: string) => Promise<TPlaylist | null>;
   savePlaylistSong: (
     playlistId: string,
     songId: string
   ) => Promise<TJPlaylistSongs>;
   deletePlaylistSong: (playlistId: string, songId: string) => Promise<void>;
-  findManyPlaylist: (ids: string[]) => Promise<TPLaylist[]>;
+  findManyPlaylist: (ids: string[]) => Promise<TPlaylist[]>;
 }
 
 export type TJPlaylistSongs = {
@@ -60,4 +66,39 @@ export interface IPlaylistHandler {
   getSongsByPlaylistId: (r: R, h: H) => Promise<Lf.ReturnValue>;
   deleteSongFromPlaylistId: (r: R, h: H) => Promise<Lf.ReturnValue>;
   getPlaylistActivity(r: R, h: H): Promise<Lf.ReturnValue>;
+}
+
+export type TPlaylistWithOwner = {
+  id: string;
+  name: string;
+  username: string;
+};
+
+export interface IPlaylistPresentation {
+  postPlaylist: (playlist: TPlaylist) => TDataResponse<{ playlistId: string }>;
+  getPlaylist: (
+    playlist: TPlaylist[],
+    usernames: string[]
+  ) => TDataResponse<{ playlists: TPlaylistWithOwner[] }>;
+  postSongToPlaylist: (playlist: TPlaylist, song: Song) => TMessageResponse;
+  getSongsbyPlaylistId: (
+    playlistSong: TPlaylistSong<Song>[],
+    ownerUsername: string
+  ) => TDataResponse<{
+    playlist: TPlaylistWithOwner & { songs: TGetSongs[] };
+  }>;
+  deletePlaylistById: (playlist: TPlaylist) => TMessageResponse;
+  deleteSongFromPlaylistId: (
+    playlist: TPlaylist,
+    song: Song
+  ) => TMessageResponse;
+  getPlaylistActivity: (
+    activities: TActivity[],
+    playlist: TPlaylist,
+    usernames: string[],
+    titles: string[]
+  ) => TDataResponse<{
+    playlistId: string;
+    activities: TActivityPresentation[];
+  }>;
 }

@@ -1,7 +1,8 @@
 import type {
   IPlaylistHandler,
+  IPlaylistPresentation,
   IPlayListService,
-  TPLaylist,
+  // TPlaylist,
   TPlaylistDTO,
   TPlaylistServiceDependency,
 } from '../types/playlist.js';
@@ -13,7 +14,6 @@ import type {
   ResponseToolkit as H,
   Lifecycle as Lf,
 } from '@hapi/hapi';
-import type { TAuthObj } from '../types/auth.js';
 import type { ICollabService } from '../types/collab.js';
 import autoBind from 'auto-bind';
 import type { IPlaylistServiceCoord } from '../types/musicCoord.js';
@@ -36,6 +36,7 @@ class PlaylistHandler implements IPlaylistHandler {
   private song: IServiceSong;
   private user: IUserService;
   private authorization: IAuthorizationService;
+  private presentationService: IPlaylistPresentation;
 
   constructor(deps: TPlaylistServiceDependency) {
     this.playlist = deps.playlistService;
@@ -45,6 +46,7 @@ class PlaylistHandler implements IPlaylistHandler {
     this.song = deps.songService;
     this.user = deps.userService;
     this.authorization = deps.authorizationService;
+    this.presentationService = deps.presentationService;
     autoBind(this);
   }
 
@@ -64,32 +66,15 @@ class PlaylistHandler implements IPlaylistHandler {
     return playlist.map((p) => userMap.get(p.owner) || '');
   }
 
-  private async mapPlaylistWithOwner(
-    playlist: TPLaylist[],
-    usernames: string[]
-  ): Promise<any[]> {
-    return playlist.map((p, index) => ({
-      id: p.id,
-      name: p.name,
-      username: usernames[index],
-    }));
-  }
-
   public async postPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
     const { name } = r.payload as { name: string };
     const ownerId = this.authorization.getUserIdFromRequest(r);
-    const playlistData: TPlaylistDTO = {
-      name,
-      owner: ownerId,
-    };
-    checkData(playlistData, this.validator.postSchema);
+    const playlistData = checkData<TPlaylistDTO>(
+      { name, owner: ownerId },
+      this.validator.postSchema
+    );
     const playlist = await this.playlist.save(playlistData);
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        playlistId: playlist.id,
-      },
-    };
+    const response = this.presentationService.postPlaylist(playlist);
     return h.response(response).code(201);
   }
 
@@ -98,17 +83,7 @@ class PlaylistHandler implements IPlaylistHandler {
     const ids = await this.getUserPlaylistIds(ownerId);
     const playlists = await this.playlist.findManyPlaylist(ids);
     const usernames = await this.getPlaylistOwnerUsername(playlists);
-    const mappedPlaylist = await this.mapPlaylistWithOwner(
-      playlists,
-      usernames
-    );
-
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        playlists: mappedPlaylist,
-      },
-    };
+    const response = this.presentationService.getPlaylist(playlists, usernames);
     return h.response(response).code(200);
   }
 
@@ -122,17 +97,17 @@ class PlaylistHandler implements IPlaylistHandler {
       playlistId,
       (id) => new NotFoundError(`Playlist with id ${id} not found`)
     );
-    await this.music.addSongToPlaylist(playlistId, songId);
+    const playlistSong = await this.music.addSongToPlaylist(playlistId, songId);
     await this.activity.addActivity({
       userId: id,
       playlistId,
       songId,
     });
 
-    const response: TResponse = {
-      status: 'success',
-      message: `Song with id ${songId} added to playlist with id ${playlistId}`,
-    };
+    const response = this.presentationService.postSongToPlaylist(
+      playlistSong.playlist,
+      playlistSong.song
+    );
     return h.response(response).code(201);
   }
 
@@ -153,17 +128,7 @@ class PlaylistHandler implements IPlaylistHandler {
       title: playlistSong.song.title,
       performer: playlistSong.song.performer,
     }));
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        playlist: {
-          id: playlist.id,
-          name: playlist.name,
-          username: username,
-          songs,
-        },
-      },
-    };
+    const response = this.presentationService.getSongsbyPlaylistId();
     return h.response(response).code(200);
   }
 
@@ -205,7 +170,7 @@ class PlaylistHandler implements IPlaylistHandler {
     activity: TActivity,
     r: R
   ): Promise<TActivityPresentation> {
-    const username = (r.auth.credentials.user as TAuthObj).username;
+    const username = this.authorization.getUsernameFromRequest(r);
     const { title } = await this.song.getById(activity.songId);
     return {
       username,

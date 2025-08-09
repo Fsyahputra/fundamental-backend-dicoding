@@ -6,7 +6,7 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../exception.js';
-import type { IPlayListService, TPLaylist } from '../types/playlist.js';
+import type { IPlayListService, TPlaylist } from '../types/playlist.js';
 import type { ICollabService } from '../types/collab.js';
 
 class AuthorizationService implements IAuthorizationService {
@@ -21,7 +21,7 @@ class AuthorizationService implements IAuthorizationService {
     this.collabService = collabService;
   }
 
-  private ensureOwner(userId: string, playlist: TPLaylist): boolean {
+  private ensureOwner(userId: string, playlist: TPlaylist): boolean {
     if (playlist.owner !== userId) {
       return false;
     }
@@ -52,7 +52,7 @@ class AuthorizationService implements IAuthorizationService {
     playlistId: string,
     onNotFound: (id: string) => Error = (id) =>
       new NotFoundError(`Playlist with id ${id} not found`)
-  ): Promise<TPLaylist> {
+  ): Promise<TPlaylist> {
     const playlist = await this.playlistService.getById(playlistId);
     if (!playlist) {
       throw onNotFound(playlistId);
@@ -82,7 +82,7 @@ class AuthorizationService implements IAuthorizationService {
     }
   }
 
-  public ensureOwnerShip(userId: string, playlist: TPLaylist): void {
+  public ensureOwnerShip(userId: string, playlist: TPlaylist): void {
     const isOwner = this.ensureOwner(userId, playlist);
     if (!isOwner) {
       throw new ForbiddenError(
@@ -101,6 +101,14 @@ class AuthorizationService implements IAuthorizationService {
         `User with id ${userId} is not a collaborator of playlist with id ${playlistId}`
       );
     }
+  }
+
+  public getUsernameFromRequest(r: R): string {
+    const user = r.auth.credentials.user as TAuthObj;
+    if (!user || !user.username) {
+      throw new UnauthorizedError('Username not found in request');
+    }
+    return user.username;
   }
 }
 

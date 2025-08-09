@@ -17,6 +17,7 @@ const playListDeps: TPlaylistServiceDependency = {
   songService: serviceObject.songService,
   userService: serviceObject.userService,
   authorizationService: serviceObject.authorizationService,
+  presentationService: presentationObject.playList,
 };
 
 const albumHandler = new AlbumHandler(

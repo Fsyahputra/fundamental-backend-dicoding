@@ -11,7 +11,7 @@ import type {
   Lifecycle as Lf,
 } from '@hapi/hapi';
 import { type TUser, type IUserService } from '../types/users.js';
-import { type TPLaylist, type IPlayListService } from '../types/playlist.js';
+import { type TPlaylist, type IPlayListService } from '../types/playlist.js';
 import { checkData, checkIsExist } from '../utils.js';
 import type { IAuthorizationService } from '../types/authorization.js';
 import collabValidator from '../schema/collab.js';
@@ -45,7 +45,7 @@ class CollabHandler implements ICollabhandler {
       this.validator.postCollab
     );
     const id = this.authorizationService.getUserIdFromRequest(r);
-    const playlist = await checkIsExist<TPLaylist>(
+    const playlist = await checkIsExist<TPlaylist>(
       `Playlist with id ${collabData.playlistId} not found`,
       () => this.playlistService.getById(collabData.playlistId)
     );
@@ -65,7 +65,7 @@ class CollabHandler implements ICollabhandler {
       this.validator.deleteCollab
     );
     const id = this.authorizationService.getUserIdFromRequest(r);
-    const playlist = await checkIsExist<TPLaylist>(
+    const playlist = await checkIsExist<TPlaylist>(
       `Playlist with id ${collabData.playlistId} not found`,
       () => this.playlistService.getById(collabData.playlistId)
     );
