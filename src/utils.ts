@@ -2,11 +2,11 @@ import type Joi from 'joi';
 import { BadRequestError, NotFoundError } from './exception.js';
 
 export const checkData = <T>(data: any, schema: Joi.ObjectSchema): T => {
-  const { error } = schema.validate(data);
+  const { error, value } = schema.validate(data);
   if (error) {
     throw new BadRequestError(`Invalid data: ${error.message}`);
   }
-  return data;
+  return value;
 };
 
 // Utility function to transform null or undefined function results into NotFoundError

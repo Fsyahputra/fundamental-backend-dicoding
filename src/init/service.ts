@@ -14,6 +14,7 @@ import PlaylistSongService from '../service/playlistSong.js';
 import AuthorizationService from '../service/authorization.js';
 import type { IMsgService } from '../types/msg.js';
 import RabbitMqMsgImpl from '../service/msg.js';
+import AlbumLikesService from '../service/albumLikes.js';
 
 dotenv.config();
 
@@ -31,7 +32,7 @@ const refreshTokenSecret =
   process.env['REFRESH_TOKEN_KEY'] || 'defaultRefreshTokenKey';
 const playlistSongService = new PlaylistSongService(pool, nanoid);
 const rabbitMqUrl = process.env['RABBITMQ_URL'] || 'amqp://localhost:5672';
-
+const albumLikesService = new AlbumLikesService(pool, nanoid);
 const msgService: IMsgService = new RabbitMqMsgImpl(rabbitMqUrl);
 const activityService = new ActivityService(pool);
 const albumService = new AlbumService(pool, nanoid);
@@ -67,6 +68,8 @@ const serviceObject = {
   jwtAuthScheme,
   playlistSongService,
   authorizationService,
+  msgService,
+  albumLikesService,
 };
 
 export default serviceObject;

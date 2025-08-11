@@ -8,15 +8,24 @@
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-  pgm.addColumn('albums', {
-    cover: {
+  pgm.createTable('album_likes', {
+    id: {
       type: 'TEXT',
-      notNull: false,
+      primaryKey: true,
     },
-    likes_count: {
-      type: 'INTEGER',
+    album_id: {
+      type: 'TEXT',
+      references: 'albums(id)',
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE',
       notNull: true,
-      default: 0,
+    },
+    user_id: {
+      type: 'TEXT',
+      references: 'users(id)',
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE',
+      notNull: true,
     },
   });
 };
@@ -27,6 +36,5 @@ export const up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 export const down = (pgm) => {
-  pgm.dropColumn('albums', 'cover');
-  pgm.dropColumn('albums', 'likes_count');
+  pgm.dropTable('album_likes');
 };

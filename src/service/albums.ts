@@ -20,11 +20,18 @@ class AlbumService implements IServiceAlbum {
     return id;
   }
 
+  private toSnakeCase(str: string) {
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  }
+
   private buildUpdateQuery(
     album: Partial<AlbumDTO>,
     id: string
   ): { text: string; values: any[] } {
-    const entries = Object.entries(album).filter(([, v]) => v !== undefined);
+    const entries = Object.entries(album)
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => [this.toSnakeCase(k), v]); // konversi key
+
     if (entries.length === 0) {
       throw new Error('Nothing to update');
     }
@@ -38,7 +45,7 @@ class AlbumService implements IServiceAlbum {
     UPDATE ${AlbumService.TABLE_NAME}
     SET ${setClause}
     WHERE id = $${entries.length + 1}
-    RETURNING id, name, year, likes, cover
+    RETURNING id, name, year, likes_count, cover
   `;
 
     return {
@@ -49,24 +56,24 @@ class AlbumService implements IServiceAlbum {
 
   public async save(album: AlbumDTO): Promise<Album> {
     const id = this.generateId();
-    const { name, year, likes, cover } = album;
+    const { name, year, likesCount, coverUrl } = album;
     const query = {
-      text: `INSERT INTO ${AlbumService.TABLE_NAME} (id, name, year, likes, cover) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, year, likes, cover`,
-      values: [id, name, year, likes, cover ?? null],
+      text: `INSERT INTO ${AlbumService.TABLE_NAME} (id, name, year, likes_count, cover) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, year, likes_count, cover`,
+      values: [id, name, year, likesCount, coverUrl ?? null],
     };
     const result = await this.pool.query(query);
     return {
       id: result.rows[0].id,
       name: result.rows[0].name,
       year: result.rows[0].year,
-      likes: result.rows[0].likes ?? 0,
-      cover: result.rows[0].cover ?? null,
+      likesCount: result.rows[0].likesCount ?? 0,
+      coverUrl: result.rows[0].cover ?? null,
     };
   }
 
   public async getById(id: string): Promise<Album | null> {
     const query = {
-      text: `SELECT id, name, year, likes, cover FROM ${AlbumService.TABLE_NAME} WHERE id = $1`,
+      text: `SELECT id, name, year, likes_count, cover FROM ${AlbumService.TABLE_NAME} WHERE id = $1`,
       values: [id],
     };
     const result = await this.pool.query(query);
@@ -77,14 +84,14 @@ class AlbumService implements IServiceAlbum {
       id: result.rows[0].id,
       name: result.rows[0].name,
       year: result.rows[0].year,
-      likes: result.rows[0].likes ?? 0,
-      cover: result.rows[0].cover ?? null,
+      likesCount: result.rows[0].likesCount ?? 0,
+      coverUrl: result.rows[0].cover ?? null,
     };
   }
 
   public async delete(id: string): Promise<Album | null> {
     const query = {
-      text: `DELETE FROM ${AlbumService.TABLE_NAME} WHERE id = $1 RETURNING id, name, year, likes, cover`,
+      text: `DELETE FROM ${AlbumService.TABLE_NAME} WHERE id = $1 RETURNING id, name, year, likes_count, cover`,
       values: [id],
     };
     const result = await this.pool.query(query);
@@ -95,8 +102,8 @@ class AlbumService implements IServiceAlbum {
       id: result.rows[0].id,
       name: result.rows[0].name,
       year: result.rows[0].year,
-      likes: result.rows[0].likes ?? 0,
-      cover: result.rows[0].cover ?? null,
+      likesCount: result.rows[0].likesCount ?? 0,
+      coverUrl: result.rows[0].cover ?? null,
     };
   }
 
@@ -113,8 +120,44 @@ class AlbumService implements IServiceAlbum {
       id: result.rows[0].id,
       name: result.rows[0].name,
       year: result.rows[0].year,
-      likes: result.rows[0].likes ?? 0,
-      cover: result.rows[0].cover ?? null,
+      likesCount: result.rows[0].likesCount ?? 0,
+      coverUrl: result.rows[0].cover ?? null,
+    };
+  }
+
+  public async addLikes(id: string): Promise<Album | null> {
+    const query = {
+      text: `UPDATE ${AlbumService.TABLE_NAME} SET likes_count = likes_count + 1 WHERE id = $1 RETURNING id, name, year, likes_count, cover`,
+      values: [id],
+    };
+    const result = await this.pool.query(query);
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return {
+      id: result.rows[0].id,
+      name: result.rows[0].name,
+      year: result.rows[0].year,
+      likesCount: result.rows[0].likesCount ?? 0,
+      coverUrl: result.rows[0].cover ?? null,
+    };
+  }
+
+  public async removeLikes(id: string): Promise<Album | null> {
+    const query = {
+      text: `UPDATE ${AlbumService.TABLE_NAME} SET likes_count = likes_count - 1 WHERE id = $1 RETURNING id, name, year, likes_count, cover`,
+      values: [id],
+    };
+    const result = await this.pool.query(query);
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return {
+      id: result.rows[0].id,
+      name: result.rows[0].name,
+      year: result.rows[0].year,
+      likesCount: result.rows[0].likesCount ?? 0,
+      coverUrl: result.rows[0].cover ?? null,
     };
   }
 }

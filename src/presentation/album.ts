@@ -24,11 +24,17 @@ class AlbumPresentation implements IAlbumPresentation {
     songs: Song[]
   ): TDataResponse<TGetAlbumByIdPresentation> {
     const mappedSongs = songs.map(this.mapSongToPresentation);
+    const albumWithoutLikes: Omit<Album, 'likesCount'> = {
+      id: album.id,
+      name: album.name,
+      year: album.year,
+      coverUrl: album.coverUrl,
+    };
     return {
       status: 'success',
       data: {
         album: {
-          ...album,
+          ...albumWithoutLikes,
           songs: mappedSongs,
         },
       },
@@ -55,6 +61,35 @@ class AlbumPresentation implements IAlbumPresentation {
     return {
       status: 'success',
       message: `Album with id ${album.id} deleted successfully`,
+    };
+  }
+  public postLike(album: Album): TMessageResponse {
+    return {
+      status: 'success',
+      message: `Album with id ${album.id} liked successfully`,
+    };
+  }
+  public deleteLike(album: Album): TMessageResponse {
+    return {
+      status: 'success',
+      message: `Like removed from album with id ${album.id} successfully`,
+    };
+  }
+  public postCover(_album: Album): TMessageResponse {
+    return {
+      status: 'success',
+      message: 'Sampul berhasil diunggah',
+    };
+  }
+
+  public async getLikeCount(
+    likes: number
+  ): Promise<TDataResponse<{ likes: number }>> {
+    return {
+      status: 'success',
+      data: {
+        likes: likes,
+      },
     };
   }
 }

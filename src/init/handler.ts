@@ -8,6 +8,7 @@ import type { TPlaylistServiceDependency } from '../types/playlist.js';
 import SongHandler from '../handler/songs.js';
 import UserHandler from '../handler/user.js';
 import presentationObject from './presentation.js';
+import type { TAlbumDeps } from '../types/albums.js';
 
 const playListDeps: TPlaylistServiceDependency = {
   activityService: serviceObject.activityService,
@@ -19,12 +20,16 @@ const playListDeps: TPlaylistServiceDependency = {
   presentationService: presentationObject.playList,
 };
 
-const albumHandler = new AlbumHandler(
-  serviceObject.albumService,
-  albumValidation,
-  serviceObject.songService,
-  presentationObject.album
-);
+const albumDeps: TAlbumDeps = {
+  albumService: serviceObject.albumService,
+  songService: serviceObject.songService,
+  albumLikesService: serviceObject.albumLikesService,
+  albumPresentation: presentationObject.album,
+  authorizationService: serviceObject.authorizationService,
+  validator: albumValidation,
+};
+
+const albumHandler = new AlbumHandler(albumDeps);
 const collabHandler = new CollabHandler(
   serviceObject.collabService,
   serviceObject.userService,

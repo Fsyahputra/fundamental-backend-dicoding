@@ -36,6 +36,38 @@ const albumRoutes = (handler: IAlbumHandler): ServerRoute[] => [
       auth: false,
     },
   },
+  {
+    method: 'POST',
+    path: `${base}/{id}/cover`,
+    handler: handler.postCover,
+    options: {
+      auth: false,
+    },
+  },
+  {
+    method: 'GET',
+    path: `${base}/{id}/likes`,
+    handler: handler.getLikeCount,
+    options: {
+      auth: false,
+    },
+  },
+  {
+    method: 'POST',
+    path: `${base}/{id}/likes`,
+    handler: handler.postLike,
+    options: {
+      auth: 'jwt',
+    },
+  },
+  {
+    method: 'DELETE',
+    path: `${base}/{id}/likes`,
+    handler: handler.deleteLike,
+    options: {
+      auth: 'jwt',
+    },
+  },
 ];
 
 export default albumRoutes;
