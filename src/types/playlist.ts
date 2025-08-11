@@ -4,8 +4,8 @@ import type {
   TActivityPresentation,
 } from './activity.js';
 import type { ICollabService } from './collab.js';
-import type { IPlaylistServiceCoord } from './musicCoord.js';
-import type { IServiceSong, Song, TGetSongs } from './songs.js';
+import type { IPlaylistServiceCoord, PlaylistSong } from './musicCoord.js';
+import type { Song, TGetSongs } from './songs.js';
 import type {
   Request as R,
   ResponseToolkit as H,
@@ -34,7 +34,6 @@ export type TPlaylistServiceDependency = {
   collaborativePlaylistService: ICollabService;
   musicService: IPlaylistServiceCoord;
   activityService: IActivityService;
-  songService: IServiceSong;
   userService: IUserService;
   authorizationService: IAuthorizationService;
   presentationService: IPlaylistPresentation;
@@ -51,6 +50,10 @@ export interface IPlayListService {
   ) => Promise<TJPlaylistSongs>;
   deletePlaylistSong: (playlistId: string, songId: string) => Promise<void>;
   findManyPlaylist: (ids: string[]) => Promise<TPlaylist[]>;
+  exportPlaylist: (
+    targetEmail: string,
+    playlistId: string
+  ) => Promise<TPlaylist>;
 }
 
 export type TJPlaylistSongs = {
@@ -66,6 +69,7 @@ export interface IPlaylistHandler {
   getSongsByPlaylistId: (r: R, h: H) => Promise<Lf.ReturnValue>;
   deleteSongFromPlaylistId: (r: R, h: H) => Promise<Lf.ReturnValue>;
   getPlaylistActivity(r: R, h: H): Promise<Lf.ReturnValue>;
+  exportPlaylist(r: R, h: H): Promise<Lf.ReturnValue>;
 }
 
 export type TPlaylistWithOwner = {
@@ -82,7 +86,7 @@ export interface IPlaylistPresentation {
   ) => TDataResponse<{ playlists: TPlaylistWithOwner[] }>;
   postSongToPlaylist: (playlist: TPlaylist, song: Song) => TMessageResponse;
   getSongsbyPlaylistId: (
-    playlistSong: TPlaylistSong<Song>[],
+    playlistSong: PlaylistSong<Song>[],
     ownerUsername: string
   ) => TDataResponse<{
     playlist: TPlaylistWithOwner & { songs: TGetSongs[] };
@@ -92,13 +96,15 @@ export interface IPlaylistPresentation {
     playlist: TPlaylist,
     song: Song
   ) => TMessageResponse;
-  getPlaylistActivity: (
-    activities: TActivity[],
-    playlist: TPlaylist,
-    usernames: string[],
-    titles: string[]
-  ) => TDataResponse<{
-    playlistId: string;
-    activities: TActivityPresentation[];
-  }>;
+  getPlaylistActivity: (activities: TActivity[]) => Promise<
+    TDataResponse<{
+      playlistId: string;
+      activities: TActivityPresentation[];
+    }>
+  >;
+  exportPlaylist: (playlist: TPlaylist) => TMessageResponse;
 }
+
+export type TExportPlaylistDTO = {
+  targetEmail: string;
+};

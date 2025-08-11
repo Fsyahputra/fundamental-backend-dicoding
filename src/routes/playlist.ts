@@ -1,63 +1,71 @@
-import type { ServerRoute } from "@hapi/hapi";
-import type { IPlaylistHandler } from "../types/playlist.js";
+import type { ServerRoute } from '@hapi/hapi';
+import type { IPlaylistHandler } from '../types/playlist.js';
 
-const base: string = "/playlists";
+const base: string = '/playlists';
 
 const playlistRoutes = (handler: IPlaylistHandler): ServerRoute[] => [
   {
-    method: "POST",
+    method: 'POST',
     path: base,
     handler: handler.postPlaylist,
     options: {
-      auth: "jwt",
+      auth: 'jwt',
     },
   },
   {
-    method: "GET",
+    method: 'GET',
     path: base,
     handler: handler.getPlaylist,
     options: {
-      auth: "jwt",
+      auth: 'jwt',
     },
   },
   {
-    method: "DELETE",
+    method: 'DELETE',
     path: `${base}/{id}`,
     handler: handler.deletePlaylistById,
     options: {
-      auth: "jwt",
+      auth: 'jwt',
     },
   },
   {
-    method: "POST",
+    method: 'POST',
     path: `${base}/{id}/songs`,
     handler: handler.postSongToPlaylist,
     options: {
-      auth: "jwt",
+      auth: 'jwt',
     },
   },
   {
-    method: "GET",
+    method: 'GET',
     path: `${base}/{id}/songs`,
     handler: handler.getSongsByPlaylistId,
     options: {
-      auth: "jwt",
+      auth: 'jwt',
     },
   },
   {
-    method: "DELETE",
+    method: 'DELETE',
     path: `${base}/{id}/songs`,
     handler: handler.deleteSongFromPlaylistId,
     options: {
-      auth: "jwt",
+      auth: 'jwt',
     },
   },
   {
-    method: "GET",
+    method: 'GET',
     path: `${base}/{id}/activities`,
     handler: handler.getPlaylistActivity,
     options: {
-      auth: "jwt",
+      auth: 'jwt',
+    },
+  },
+  {
+    method: 'POST',
+    path: '/export/playlist/{id}',
+    handler: handler.exportPlaylist,
+    options: {
+      auth: 'jwt',
     },
   },
 ];

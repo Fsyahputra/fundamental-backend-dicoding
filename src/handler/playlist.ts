@@ -2,7 +2,6 @@ import type {
   IPlaylistHandler,
   IPlaylistPresentation,
   IPlayListService,
-  // TPlaylist,
   TPlaylistDTO,
   TPlaylistServiceDependency,
 } from '../types/playlist.js';
@@ -17,12 +16,7 @@ import type {
 import type { ICollabService } from '../types/collab.js';
 import autoBind from 'auto-bind';
 import type { IPlaylistServiceCoord } from '../types/musicCoord.js';
-import type {
-  IActivityService,
-  TActivity,
-  TActivityPresentation,
-} from '../types/activity.js';
-import type { IServiceSong } from '../types/songs.js';
+import type { IActivityService } from '../types/activity.js';
 import type { IUserService } from '../types/users.js';
 import { checkData, checkIsExist } from '../utils.js';
 import type { IAuthorizationService } from '../types/authorization.js';
@@ -33,7 +27,6 @@ class PlaylistHandler implements IPlaylistHandler {
   private collaborative: ICollabService;
   private music: IPlaylistServiceCoord;
   private activity: IActivityService;
-  private song: IServiceSong;
   private user: IUserService;
   private authorization: IAuthorizationService;
   private presentationService: IPlaylistPresentation;
@@ -43,7 +36,6 @@ class PlaylistHandler implements IPlaylistHandler {
     this.collaborative = deps.collaborativePlaylistService;
     this.music = deps.musicService;
     this.activity = deps.activityService;
-    this.song = deps.songService;
     this.user = deps.userService;
     this.authorization = deps.authorizationService;
     this.presentationService = deps.presentationService;
@@ -123,12 +115,10 @@ class PlaylistHandler implements IPlaylistHandler {
       this.user.getById(playlist.owner)
     );
     const playlistSongs = await this.music.getSongsInPlaylist(playlistId);
-    const songs = playlistSongs.map((playlistSong) => ({
-      id: playlistSong.song.id,
-      title: playlistSong.song.title,
-      performer: playlistSong.song.performer,
-    }));
-    const response = this.presentationService.getSongsbyPlaylistId();
+    const response = this.presentationService.getSongsbyPlaylistId(
+      playlistSongs,
+      username
+    );
     return h.response(response).code(200);
   }
 
@@ -136,11 +126,8 @@ class PlaylistHandler implements IPlaylistHandler {
     const playlistId = r.params['id'];
     const userId = this.authorization.getUserIdFromRequest(r);
     await this.authorization.assertDeletePlaylistAccess(userId, playlistId);
-    await this.playlist.delete(playlistId);
-    const response: TResponse = {
-      status: 'success',
-      message: `Playlist with id ${playlistId} deleted successfully`,
-    };
+    const playList = await this.playlist.delete(playlistId);
+    const response = this.presentationService.deletePlaylistById(playList);
     return h.response(response).code(200);
   }
 
@@ -166,48 +153,37 @@ class PlaylistHandler implements IPlaylistHandler {
     return h.response(response).code(200);
   }
 
-  private async prepareActivityPresentation(
-    activity: TActivity,
-    r: R
-  ): Promise<TActivityPresentation> {
-    const username = this.authorization.getUsernameFromRequest(r);
-    const { title } = await this.song.getById(activity.songId);
-    return {
-      username,
-      title,
-      action: activity.action,
-      time: activity.time.toISOString(),
-    };
-  }
-
   public async getPlaylistActivity(r: R, h: H): Promise<Lf.ReturnValue> {
     const playlistId = r.params['id'];
     const activities = await this.activity.getActivitiesByPlaylistId(
       playlistId
     );
-    const activityPresentations = await Promise.all(
-      activities.map((activity) =>
-        this.prepareActivityPresentation(activity, r)
-      )
+    const response = await this.presentationService.getPlaylistActivity(
+      activities
     );
-    if (activityPresentations.length === 0) {
-      throw new NotFoundError(
-        `No activities found for playlist with id ${playlistId}`
-      );
-    }
     const userId = this.authorization.getUserIdFromRequest(r);
     await this.authorization.assertCollabPlaylistAccess(
       userId,
       playlistId,
       (id) => new ForbiddenError(`Playlist with id ${id} not found`)
     );
-    const response: TResponse = {
-      status: 'success',
-      data: {
-        playlistId,
-        activities: activityPresentations,
-      },
-    };
+    return h.response(response).code(200);
+  }
+
+  public async exportPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
+    const playlistId = r.params['id'];
+    const { targetEmail } = r.payload as { targetEmail: string };
+    const userId = this.authorization.getUserIdFromRequest(r);
+    await this.authorization.assertCollabPlaylistAccess(
+      userId,
+      playlistId,
+      (id) => new NotFoundError(`Playlist with id ${id} not found`)
+    );
+    const playlist = await this.playlist.exportPlaylist(
+      targetEmail,
+      playlistId
+    );
+    const response = this.presentationService.exportPlaylist(playlist);
     return h.response(response).code(200);
   }
 }

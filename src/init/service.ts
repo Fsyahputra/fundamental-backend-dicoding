@@ -12,6 +12,9 @@ import dotenv from 'dotenv';
 import JwtAuthScheme from '../jwtScheme.js';
 import PlaylistSongService from '../service/playlistSong.js';
 import AuthorizationService from '../service/authorization.js';
+import type { IMsgService } from '../types/msg.js';
+import RabbitMqMsgImpl from '../service/msg.js';
+
 dotenv.config();
 
 export const pool = new Pool({
@@ -27,7 +30,9 @@ const accessTokenSecret =
 const refreshTokenSecret =
   process.env['REFRESH_TOKEN_KEY'] || 'defaultRefreshTokenKey';
 const playlistSongService = new PlaylistSongService(pool, nanoid);
+const rabbitMqUrl = process.env['RABBITMQ_URL'] || 'amqp://localhost:5672';
 
+const msgService: IMsgService = new RabbitMqMsgImpl(rabbitMqUrl);
 const activityService = new ActivityService(pool);
 const albumService = new AlbumService(pool, nanoid);
 const songService = new SongsService(pool, nanoid);
@@ -38,7 +43,7 @@ const authService = new AuthService(
 );
 const jwtAuthScheme = new JwtAuthScheme(authService);
 const collabService = new CollabService(pool, nanoid);
-const playlistService = new PlaylistService(pool, nanoid);
+const playlistService = new PlaylistService(pool, nanoid, msgService);
 const musicCoordService = new MusicCoordService(
   playlistService,
   songService,

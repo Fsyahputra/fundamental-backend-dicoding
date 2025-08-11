@@ -1,13 +1,22 @@
+import { NotFoundError } from '../exception.js';
 import type { TActivity, TActivityPresentation } from '../types/activity.js';
+import type { PlaylistSong } from '../types/musicCoord.js';
 import type {
   IPlaylistPresentation,
   TPlaylist,
   TPlaylistWithOwner,
 } from '../types/playlist.js';
 import type { TDataResponse, TMessageResponse } from '../types/shared.js';
-import type { Song, TGetSongs } from '../types/songs.js';
+import type { IServiceSong, Song, TGetSongs } from '../types/songs.js';
+import type { IUserService } from '../types/users.js';
 
 class PlaylistPresentation implements IPlaylistPresentation {
+  private songService: IServiceSong;
+  private userService: IUserService;
+  constructor(songService: IServiceSong, userService: IUserService) {
+    this.songService = songService;
+    this.userService = userService;
+  }
   public postPlaylist(
     playlist: TPlaylist
   ): TDataResponse<{ playlistId: string }> {
@@ -48,21 +57,20 @@ class PlaylistPresentation implements IPlaylistPresentation {
   }
 
   public getSongsbyPlaylistId(
-    song: Song[],
-    playlist: TPlaylist,
+    playlistSong: PlaylistSong<Song>[],
     ownerUsername: string
   ): TDataResponse<{
     playlist: TPlaylistWithOwner & { songs: TGetSongs[] };
   }> {
-    const songsData = song.map((s) => ({
-      id: s.id,
-      title: s.title,
-      performer: s.performer,
+    const songsData = playlistSong.map((ps) => ({
+      id: ps.song.id,
+      title: ps.song.title,
+      performer: ps.song.performer,
     }));
-
+    const playlistInfo = playlistSong[0]?.playlist;
     const playlistWithOwner: TPlaylistWithOwner = {
-      id: playlist.id,
-      name: playlist.name,
+      id: playlistInfo?.id ?? '',
+      name: playlistInfo?.name ?? '',
       username: ownerUsername,
     };
     return {
@@ -93,30 +101,53 @@ class PlaylistPresentation implements IPlaylistPresentation {
     };
   }
 
-  public getPlaylistActivity(
-    activities: TActivity[],
-    playlist: TPlaylist,
-    usernames: string[],
-    titles: string[]
-  ): TDataResponse<{
-    playlistId: string;
-    activities: TActivityPresentation[];
-  }> {
-    const activitiesWithUsernames: TActivityPresentation[] = activities.map(
-      (activity, index) => ({
-        action: activity.action,
-        title: titles[index] ?? '',
-        time: activity.time.toISOString(),
-        username: usernames[index] ?? '',
-      })
+  private async prepareActivityPresentation(
+    activity: TActivity,
+    username: string
+  ): Promise<TActivityPresentation> {
+    const { title } = await this.songService.getById(activity.songId);
+    return {
+      username,
+      title,
+      action: activity.action,
+      time: activity.time.toISOString(),
+    };
+  }
+
+  public async getPlaylistActivity(activities: TActivity[]): Promise<
+    TDataResponse<{
+      playlistId: string;
+      activities: TActivityPresentation[];
+    }>
+  > {
+    const userIds = activities.map((activity) => activity.userId);
+    const userAcccount = await this.userService.getManyByIds(userIds);
+    const usernames = userAcccount.map((user) => user.username);
+    const activitiesPresentations = await Promise.all(
+      activities.map((activity, index) =>
+        this.prepareActivityPresentation(
+          activity,
+          usernames.length === 1 ? usernames[0] ?? '' : usernames[index] ?? ''
+        )
+      )
     );
 
+    if (activities.length === 0) {
+      throw new NotFoundError(`No activities found for the playlist`);
+    }
     return {
       status: 'success',
       data: {
-        playlistId: playlist.id,
-        activities: activitiesWithUsernames,
+        playlistId: activities[0]!.playlistId,
+        activities: activitiesPresentations,
       },
+    };
+  }
+
+  public exportPlaylist(_playlist: TPlaylist): TMessageResponse {
+    return {
+      status: 'success',
+      message: 'Permintaan Anda sedang kami proses',
     };
   }
 }

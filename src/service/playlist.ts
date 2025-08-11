@@ -8,16 +8,28 @@ import type {
 import { nanoid } from 'nanoid';
 import { NotFoundError } from '../exception.js';
 import autoBind from 'auto-bind';
+import type { IMsgService } from '../types/msg.js';
+import { checkIsExist } from '../utils.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 class PlaylistService implements IPlayListService {
   private pool: Pool;
+  private exportQueue = process.env['EXPORT_QUEUE'] || 'export:playlist';
   private static TABLE_NAME = 'playlists';
   private static idPrefix = 'playlist' + '-';
+  private msgService: IMsgService;
   private idGenerator: () => string;
 
-  constructor(pool: Pool, idGenerator: () => string = nanoid) {
+  constructor(
+    pool: Pool,
+    idGenerator: () => string = nanoid,
+    msgService: IMsgService
+  ) {
     this.pool = pool;
     this.idGenerator = idGenerator;
+    this.msgService = msgService;
     autoBind(this);
   }
 
@@ -141,6 +153,23 @@ class PlaylistService implements IPlayListService {
       name: row.name,
       owner: row.owner,
     }));
+  }
+
+  public async exportPlaylist(
+    targetEmail: string,
+    playlistId: string
+  ): Promise<TPlaylist> {
+    const playlist = checkIsExist<TPlaylist>('Playlist Not Found', () =>
+      this.getById(playlistId)
+    );
+    await this.msgService.sendMsg(
+      JSON.stringify({
+        targetEmail,
+        playlistId,
+      }),
+      this.exportQueue
+    );
+    return playlist;
   }
 }
 

@@ -14,7 +14,6 @@ const playListDeps: TPlaylistServiceDependency = {
   playlistService: serviceObject.playlistService,
   collaborativePlaylistService: serviceObject.collabService,
   musicService: serviceObject.musicCoordService,
-  songService: serviceObject.songService,
   userService: serviceObject.userService,
   authorizationService: serviceObject.authorizationService,
   presentationService: presentationObject.playList,

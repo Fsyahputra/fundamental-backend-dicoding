@@ -8,10 +8,15 @@
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-  pgm.createTable('tokens', {
-    token: {
+  pgm.addColumn('albums', {
+    cover: {
       type: 'TEXT',
-      primaryKey: true,
+      notNull: false,
+    },
+    likesCount: {
+      type: 'INTEGER',
+      notNull: true,
+      default: 0,
     },
   });
 };
@@ -22,5 +27,6 @@ export const up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 export const down = (pgm) => {
-  pgm.dropTable('tokens');
+  pgm.dropColumn('albums', 'cover');
+  pgm.dropColumn('albums', 'likesCount');
 };
