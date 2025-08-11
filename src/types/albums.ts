@@ -47,6 +47,8 @@ export interface IAlbumPresentation {
 export type AlbumDTO = {
   name: string;
   year: number;
+  likes: number;
+  cover?: string | null;
 };
 
 export type Album = AlbumDTO & {
