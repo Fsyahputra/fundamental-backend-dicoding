@@ -39,6 +39,26 @@ class AlbumHandler implements IAlbumHandler {
     autoBind(this);
   }
 
+  private async handleCoverUploadIfExists(payload: any, albumId: string) {
+    if (typeof payload === 'object' && payload !== null && 'cover' in payload) {
+      const data = checkData<any>(payload, this.validator.postCoverSchema);
+      const mimeType = data.cover.hapi.headers['content-type'];
+
+      const coverData: TCoverDTO = {
+        albumId,
+        file: data.cover,
+        mimeType,
+      };
+      await this.coverService.saveCoverToDisk(coverData);
+
+      await checkIsExist<Album>(`Album with id ${albumId} not found`, () =>
+        this.service.update(albumId, {
+          coverUrl: this.generateCoverUrl(albumId),
+        })
+      );
+    }
+  }
+
   private getAlbumIdFromRequest(r: R): string {
     const id = r.params['id'];
     if (!id) {
@@ -65,6 +85,7 @@ class AlbumHandler implements IAlbumHandler {
   public async postAlbum(r: R, h: H): Promise<Lf.ReturnValue> {
     const albumData = checkData<AlbumDTO>(r.payload, this.validator.postSchema);
     const album = await this.service.save(albumData);
+    await this.handleCoverUploadIfExists(r.payload, album.id);
     const response = this.presentationService.postAlbum(album);
     return h.response(response).code(201);
   }

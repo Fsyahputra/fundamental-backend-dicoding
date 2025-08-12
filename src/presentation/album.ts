@@ -82,14 +82,10 @@ class AlbumPresentation implements IAlbumPresentation {
     };
   }
 
-  public async getLikeCount(
-    likes: number
-  ): Promise<TDataResponse<{ likes: number }>> {
+  public getLikeCount(likes: number): TMessageResponse {
     return {
       status: 'success',
-      data: {
-        likes: likes,
-      },
+      message: `Jumlah suka: ${likes}`,
     };
   }
 }

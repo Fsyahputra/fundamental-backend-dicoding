@@ -56,7 +56,7 @@ export interface IAlbumPresentation {
   postLike: (album: Album) => TMessageResponse;
   deleteLike: (album: Album) => TMessageResponse;
   postCover: (album: Album) => TMessageResponse;
-  getLikeCount: (likes: number) => Promise<TDataResponse<{ likes: number }>>;
+  getLikeCount: (likes: number) => TMessageResponse;
 }
 
 export type AlbumDTO = {
