@@ -13,6 +13,7 @@ import type { IAlbumLikesService } from './albumLikes.js';
 import type { IAuthorizationService } from './authorization.js';
 import type { ICoverService } from './cover.js';
 import type Joi from 'joi';
+import type { ICacheService } from './cache.js';
 
 export interface IServiceAlbum {
   save: (album: AlbumDTO) => Promise<Album>;
@@ -56,7 +57,7 @@ export interface IAlbumPresentation {
   postLike: (album: Album) => TMessageResponse;
   deleteLike: (album: Album) => TMessageResponse;
   postCover: (album: Album) => TMessageResponse;
-  getLikeCount: (likes: number) => TMessageResponse;
+  getLikeCount: (likes: number) => TDataResponse<{ likes: number }>;
 }
 
 export type AlbumDTO = {
@@ -82,4 +83,5 @@ export type TAlbumDeps = {
   authorizationService: IAuthorizationService;
   validator: TAlbumSchema;
   coverService: ICoverService;
+  cacheService: ICacheService;
 };

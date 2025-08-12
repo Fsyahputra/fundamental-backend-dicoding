@@ -31,7 +31,7 @@ class AlbumLikesService implements IAlbumLikesService {
     }
     const id = this.generateId();
     const query = {
-      text: `INSERT INTO ${AlbumLikesService.TABLE_NAME} (id, user_id, album_id) VALUES ($1, $2, $3)`,
+      text: `INSERT INTO ${AlbumLikesService.TABLE_NAME} (id, user_id, album_id) VALUES ($1, $2, $3) RETURNING id, user_id, album_id`,
       values: [id, data.userId, data.albumId],
     };
     const result = await this.pool.query(query);

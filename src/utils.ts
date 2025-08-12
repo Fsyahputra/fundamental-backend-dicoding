@@ -1,5 +1,6 @@
 import type Joi from 'joi';
 import { BadRequestError, NotFoundError } from './exception.js';
+import type { ICacheService } from './types/cache.js';
 
 export const checkData = <T>(data: any, schema: Joi.ObjectSchema): T => {
   const { error, value } = schema.validate(data);
@@ -20,4 +21,22 @@ export const checkIsExist = async <T>(
     throw new NotFoundError(msg);
   }
   return result;
+};
+
+export const fetchFromCacheOrDefault = async <T>(
+  id: string,
+  cacheService: ICacheService,
+  fetchFunction: () => Promise<T | null>
+): Promise<{
+  data: T;
+  fromCache: boolean;
+}> => {
+  let fromCache = true;
+  let data = await cacheService.get<T>(id);
+  if (data === null) {
+    data = await checkIsExist<T>(`Data with id ${id} not found`, fetchFunction);
+    fromCache = false;
+    await cacheService.set(id, data);
+  }
+  return { data, fromCache };
 };

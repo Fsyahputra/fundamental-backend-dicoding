@@ -2,6 +2,7 @@ import type {
   IPlaylistHandler,
   IPlaylistPresentation,
   IPlayListService,
+  TPlaylist,
   TPlaylistDTO,
   TPlaylistServiceDependency,
 } from '../types/playlist.js';
@@ -15,11 +16,16 @@ import type {
 } from '@hapi/hapi';
 import type { ICollabService } from '../types/collab.js';
 import autoBind from 'auto-bind';
-import type { IPlaylistServiceCoord } from '../types/musicCoord.js';
+import type {
+  IPlaylistServiceCoord,
+  PlaylistSong,
+} from '../types/musicCoord.js';
 import type { IActivityService } from '../types/activity.js';
 import type { IUserService } from '../types/users.js';
-import { checkData, checkIsExist } from '../utils.js';
+import { checkData, checkIsExist, fetchFromCacheOrDefault } from '../utils.js';
 import type { IAuthorizationService } from '../types/authorization.js';
+import type { ICacheService } from '../types/cache.js';
+import type { Song } from '../types/songs.js';
 
 class PlaylistHandler implements IPlaylistHandler {
   private validator = validationObj;
@@ -30,6 +36,7 @@ class PlaylistHandler implements IPlaylistHandler {
   private user: IUserService;
   private authorization: IAuthorizationService;
   private presentationService: IPlaylistPresentation;
+  private cacheService: ICacheService;
 
   constructor(deps: TPlaylistServiceDependency) {
     this.playlist = deps.playlistService;
@@ -39,6 +46,7 @@ class PlaylistHandler implements IPlaylistHandler {
     this.user = deps.userService;
     this.authorization = deps.authorizationService;
     this.presentationService = deps.presentationService;
+    this.cacheService = deps.cacheService;
     autoBind(this);
   }
 
@@ -66,6 +74,10 @@ class PlaylistHandler implements IPlaylistHandler {
       this.validator.postSchema
     );
     const playlist = await this.playlist.save(playlistData);
+    await this.cacheService.del(`user:${ownerId}:playlists`);
+    // .log(
+    //   `Key user:${ownerId}:playlists deleted from cache after creating playlist ${playlist.id}`
+    // );
     const response = this.presentationService.postPlaylist(playlist);
     return h.response(response).code(201);
   }
@@ -73,10 +85,23 @@ class PlaylistHandler implements IPlaylistHandler {
   public async getPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
     const ownerId = this.authorization.getUserIdFromRequest(r);
     const ids = await this.getUserPlaylistIds(ownerId);
-    const playlists = await this.playlist.findManyPlaylist(ids);
+    const { data: playlists, fromCache } = await fetchFromCacheOrDefault<
+      TPlaylist[]
+    >(`user:${ownerId}:playlists`, this.cacheService, () =>
+      this.playlist.findManyPlaylist(ids)
+    );
+    // .log(
+    //   `Key user:${ownerId}:playlists fetched from ${
+    //     fromCache ? 'cache' : 'database'
+    //   }`
+    // );
+    // const playlists = await this.playlist.findManyPlaylist(ids);
     const usernames = await this.getPlaylistOwnerUsername(playlists);
+
     const response = this.presentationService.getPlaylist(playlists, usernames);
-    return h.response(response).code(200);
+    const res = h.response(response);
+    res.header('X-Data-source', fromCache ? 'cache' : '');
+    return res.code(200);
   }
 
   public async postSongToPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
@@ -100,6 +125,10 @@ class PlaylistHandler implements IPlaylistHandler {
       playlistSong.playlist,
       playlistSong.song
     );
+    await this.cacheService.del(`playlist:${playlistId}:songs`);
+    // .log(
+    //   `Key playlist:${playlistId}:songs deleted from cache after adding song ${songId}`
+    // );
     return h.response(response).code(201);
   }
 
@@ -114,12 +143,25 @@ class PlaylistHandler implements IPlaylistHandler {
     const { username } = await checkIsExist('Owner account not found', () =>
       this.user.getById(playlist.owner)
     );
-    const playlistSongs = await this.music.getSongsInPlaylist(playlistId);
+
+    const { data, fromCache } = await fetchFromCacheOrDefault<
+      PlaylistSong<Song>[]
+    >(`playlist:${playlistId}:songs`, this.cacheService, () =>
+      this.music.getSongsInPlaylist(playlistId)
+    );
+    // .log(
+    //   `Key playlist:${playlistId}:songs fetched from ${
+    //     fromCache ? 'cache' : 'database'
+    //   }`
+    // );
     const response = this.presentationService.getSongsbyPlaylistId(
-      playlistSongs,
+      data,
       username
     );
-    return h.response(response).code(200);
+
+    const res = h.response(response);
+    res.header('X-Data-source', fromCache ? 'cache' : '');
+    return res.code(200);
   }
 
   public async deletePlaylistById(r: R, h: H): Promise<Lf.ReturnValue> {
@@ -128,6 +170,10 @@ class PlaylistHandler implements IPlaylistHandler {
     await this.authorization.assertDeletePlaylistAccess(userId, playlistId);
     const playList = await this.playlist.delete(playlistId);
     const response = this.presentationService.deletePlaylistById(playList);
+    await this.cacheService.del(`user:${userId}:playlists`);
+    // .log(
+    //   `Key user:${userId}:playlists deleted from cache after deleting playlist ${playlistId}`
+    // );
     return h.response(response).code(200);
   }
 
@@ -150,6 +196,10 @@ class PlaylistHandler implements IPlaylistHandler {
       status: 'success',
       message: `Song with id ${songId} removed from playlist with id ${playlistId}`,
     };
+    await this.cacheService.del(`playlist:${playlistId}:songs`);
+    // .log(
+    //   `Key playlist:${playlistId}:songs deleted from cache after deleting song ${songId}`
+    // );
     return h.response(response).code(200);
   }
 

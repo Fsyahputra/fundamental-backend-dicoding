@@ -68,7 +68,7 @@ class CoverService implements ICoverService {
           writeStream.destroy();
           fs.unlinkSync(tempFileName);
           reject(
-            new ClientError('File size exceeds the maximum limit of 500kb')
+            new ClientError('File size exceeds the maximum limit of 500kb', 413)
           );
         }
       });
@@ -123,6 +123,9 @@ class CoverService implements ICoverService {
 
   public async saveCoverToDisk(coverData: TCoverDTO): Promise<string> {
     const tempFileName = await this.ensureFileValid(coverData);
+    if (!fs.existsSync(this.uploadPath)) {
+      fs.mkdirSync(this.uploadPath, { recursive: true });
+    }
     await this.moveFileToUploadPath(tempFileName, coverData.albumId);
     const filename = this.generateCoverFileName(
       coverData.albumId,
@@ -155,7 +158,10 @@ class CoverService implements ICoverService {
       const foundFile = paths[0];
       const coverFilePath = path.join(this.uploadPath, foundFile);
       const fileBuffer = await fs.promises.readFile(coverFilePath);
-      const fileStream = Readable.from(fileBuffer);
+      const fileStream = new Readable();
+      fileStream._read = () => {};
+      fileStream.push(fileBuffer);
+      fileStream.push(null);
       const mimeType = mime.lookup(coverFilePath);
       const extension =
         mime.extension(typeof mimeType === 'string' ? mimeType : '') || 'jpg';

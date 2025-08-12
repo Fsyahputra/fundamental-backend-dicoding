@@ -38,10 +38,16 @@ const albumRoutes = (handler: IAlbumHandler): ServerRoute[] => [
   },
   {
     method: 'POST',
-    path: `${base}/{id}/cover`,
+    path: `${base}/{id}/covers`,
     handler: handler.postCover,
     options: {
       auth: false,
+      payload: {
+        allow: 'multipart/form-data',
+        output: 'stream',
+        multipart: true,
+        parse: true,
+      },
     },
   },
   {
@@ -70,7 +76,7 @@ const albumRoutes = (handler: IAlbumHandler): ServerRoute[] => [
   },
   {
     method: 'GET',
-    path: `${base}/{id}/cover`,
+    path: `${base}/{id}/covers`,
     handler: handler.getCoverById,
     options: {
       auth: false,

@@ -1,5 +1,4 @@
 import Joi from 'joi';
-import type { Request } from '@hapi/hapi';
 import type { AlbumDTO, TAlbumSchema } from '../types/albums.js';
 
 const postSchema = Joi.object<AlbumDTO>({
@@ -34,17 +33,22 @@ const allowedMimeTypes = [
   'image/webp',
 ];
 
-const postCoverSchema = Joi.object<Request>({
-  payload: Joi.object({
-    cover: Joi.any().required(),
+const postCoverSchema: Joi.ObjectSchema = Joi.object({
+  cover: Joi.object({
     hapi: Joi.object({
+      filename: Joi.string().required(),
       headers: Joi.object({
         'content-type': Joi.string()
           .valid(...allowedMimeTypes)
           .required(),
-      }).required(),
+        'content-disposition': Joi.string().optional(),
+      })
+        .unknown(true)
+        .required(),
     }).required(),
-  }).required(),
+  })
+    .unknown(true) // <== supaya properti internal stream seperti _events tidak error
+    .required(),
 });
 
 const validationObj: TAlbumSchema = {

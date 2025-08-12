@@ -14,6 +14,7 @@ import type {
 import type { IUserService } from './users.js';
 import type { IAuthorizationService } from './authorization.js';
 import type { TDataResponse, TMessageResponse } from './shared.js';
+import type { ICacheService } from './cache.js';
 
 export type TPlaylistDTO = {
   name: string;
@@ -37,6 +38,7 @@ export type TPlaylistServiceDependency = {
   userService: IUserService;
   authorizationService: IAuthorizationService;
   presentationService: IPlaylistPresentation;
+  cacheService: ICacheService;
 };
 
 export interface IPlayListService {

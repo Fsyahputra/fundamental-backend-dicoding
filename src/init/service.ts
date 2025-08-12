@@ -16,34 +16,30 @@ import type { IMsgService } from '../types/msg.js';
 import RabbitMqMsgImpl from '../service/msg.js';
 import AlbumLikesService from '../service/albumLikes.js';
 import CoverService from '../service/cover.js';
+import CacheServiceRedisImpl from '../service/cache.js';
+import config from '../conf/conf.js';
 
 dotenv.config();
 
 export const pool = new Pool({
-  user: process.env['PG_USER'],
-  password: process.env['PG_PASSWORD'],
-  host: process.env['PG_HOST'],
-  database: process.env['PG_DATABASE'],
-  port: Number(process.env['PG_PORT']) || 5432,
+  user: config.pg.pgUser,
+  password: config.pg.pgPassword,
+  host: config.pg.pgHost,
+  database: config.pg.pgDatabase,
+  port: config.pg.pgPort,
 });
 
-const coverService = new CoverService(
-  process.env['COVER_UPLOAD_PATH'] || './uploads/covers'
-);
-const accessTokenSecret =
-  process.env['ACCESS_TOKEN_KEY'] || 'defaultAccessTokenKey';
-const refreshTokenSecret =
-  process.env['REFRESH_TOKEN_KEY'] || 'defaultRefreshTokenKey';
+const cacheService = new CacheServiceRedisImpl(config.url.redisUrl, 1800);
+const coverService = new CoverService(config.coverUploadPath);
 const playlistSongService = new PlaylistSongService(pool, nanoid);
-const rabbitMqUrl = process.env['RABBITMQ_URL'] || 'amqp://localhost:5672';
 const albumLikesService = new AlbumLikesService(pool, nanoid);
-const msgService: IMsgService = new RabbitMqMsgImpl(rabbitMqUrl);
+const msgService: IMsgService = new RabbitMqMsgImpl(config.url.rabbitMqUrl);
 const activityService = new ActivityService(pool);
 const albumService = new AlbumService(pool, nanoid);
 const songService = new SongsService(pool, nanoid);
 const authService = new AuthService(
-  accessTokenSecret,
-  refreshTokenSecret,
+  config.token.accessTokenSecret,
+  config.token.refreshTokenSecret,
   pool
 );
 const jwtAuthScheme = new JwtAuthScheme(authService);
@@ -75,6 +71,7 @@ const serviceObject = {
   msgService,
   albumLikesService,
   coverService,
+  cacheService,
 };
 
 export default serviceObject;

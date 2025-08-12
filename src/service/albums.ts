@@ -67,7 +67,7 @@ class AlbumService implements IServiceAlbum {
       name: result.rows[0].name,
       year: result.rows[0].year,
       likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover ?? null,
+      coverUrl: result.rows[0].cover_url ?? null,
     };
   }
 
@@ -85,7 +85,7 @@ class AlbumService implements IServiceAlbum {
       name: result.rows[0].name,
       year: result.rows[0].year,
       likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover ?? null,
+      coverUrl: result.rows[0].cover_url ?? null,
     };
   }
 
@@ -103,7 +103,7 @@ class AlbumService implements IServiceAlbum {
       name: result.rows[0].name,
       year: result.rows[0].year,
       likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover ?? null,
+      coverUrl: result.rows[0].cover_url ?? null,
     };
   }
 
@@ -121,7 +121,7 @@ class AlbumService implements IServiceAlbum {
       name: result.rows[0].name,
       year: result.rows[0].year,
       likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover ?? null,
+      coverUrl: result.rows[0].cover_url ?? null,
     };
   }
 
@@ -139,7 +139,7 @@ class AlbumService implements IServiceAlbum {
       name: result.rows[0].name,
       year: result.rows[0].year,
       likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover ?? null,
+      coverUrl: result.rows[0].cover_url ?? null,
     };
   }
 
@@ -157,7 +157,7 @@ class AlbumService implements IServiceAlbum {
       name: result.rows[0].name,
       year: result.rows[0].year,
       likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover ?? null,
+      coverUrl: result.rows[0].cover_url ?? null,
     };
   }
 }

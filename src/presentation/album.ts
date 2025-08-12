@@ -82,10 +82,12 @@ class AlbumPresentation implements IAlbumPresentation {
     };
   }
 
-  public getLikeCount(likes: number): TMessageResponse {
+  public getLikeCount(likes: number): TDataResponse<{ likes: number }> {
     return {
       status: 'success',
-      message: `Jumlah suka: ${likes}`,
+      data: {
+        likes,
+      },
     };
   }
 }
