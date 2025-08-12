@@ -7,7 +7,11 @@ import type {
   TPlaylistServiceDependency,
 } from '../types/playlist.js';
 import validationObj from '../schema/playlists.js';
-import { ForbiddenError, NotFoundError } from '../exception.js';
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+} from '../exception.js';
 import type { TResponse } from '../types/shared.js';
 import type {
   Request as R,
@@ -75,9 +79,6 @@ class PlaylistHandler implements IPlaylistHandler {
     );
     const playlist = await this.playlist.save(playlistData);
     await this.cacheService.del(`user:${ownerId}:playlists`);
-    // .log(
-    //   `Key user:${ownerId}:playlists deleted from cache after creating playlist ${playlist.id}`
-    // );
     const response = this.presentationService.postPlaylist(playlist);
     return h.response(response).code(201);
   }
@@ -90,14 +91,7 @@ class PlaylistHandler implements IPlaylistHandler {
     >(`user:${ownerId}:playlists`, this.cacheService, () =>
       this.playlist.findManyPlaylist(ids)
     );
-    // .log(
-    //   `Key user:${ownerId}:playlists fetched from ${
-    //     fromCache ? 'cache' : 'database'
-    //   }`
-    // );
-    // const playlists = await this.playlist.findManyPlaylist(ids);
     const usernames = await this.getPlaylistOwnerUsername(playlists);
-
     const response = this.presentationService.getPlaylist(playlists, usernames);
     const res = h.response(response);
     res.header('X-Data-source', fromCache ? 'cache' : '');
@@ -126,9 +120,6 @@ class PlaylistHandler implements IPlaylistHandler {
       playlistSong.song
     );
     await this.cacheService.del(`playlist:${playlistId}:songs`);
-    // .log(
-    //   `Key playlist:${playlistId}:songs deleted from cache after adding song ${songId}`
-    // );
     return h.response(response).code(201);
   }
 
@@ -149,11 +140,6 @@ class PlaylistHandler implements IPlaylistHandler {
     >(`playlist:${playlistId}:songs`, this.cacheService, () =>
       this.music.getSongsInPlaylist(playlistId)
     );
-    // .log(
-    //   `Key playlist:${playlistId}:songs fetched from ${
-    //     fromCache ? 'cache' : 'database'
-    //   }`
-    // );
     const response = this.presentationService.getSongsbyPlaylistId(
       data,
       username
@@ -171,9 +157,6 @@ class PlaylistHandler implements IPlaylistHandler {
     const playList = await this.playlist.delete(playlistId);
     const response = this.presentationService.deletePlaylistById(playList);
     await this.cacheService.del(`user:${userId}:playlists`);
-    // .log(
-    //   `Key user:${userId}:playlists deleted from cache after deleting playlist ${playlistId}`
-    // );
     return h.response(response).code(200);
   }
 
@@ -197,9 +180,6 @@ class PlaylistHandler implements IPlaylistHandler {
       message: `Song with id ${songId} removed from playlist with id ${playlistId}`,
     };
     await this.cacheService.del(`playlist:${playlistId}:songs`);
-    // .log(
-    //   `Key playlist:${playlistId}:songs deleted from cache after deleting song ${songId}`
-    // );
     return h.response(response).code(200);
   }
 
@@ -223,6 +203,11 @@ class PlaylistHandler implements IPlaylistHandler {
   public async exportPlaylist(r: R, h: H): Promise<Lf.ReturnValue> {
     const playlistId = r.params['id'];
     const { targetEmail } = r.payload as { targetEmail: string };
+    if (!targetEmail) {
+      throw new BadRequestError(
+        'Target email is required for exporting playlist'
+      );
+    }
     const userId = this.authorization.getUserIdFromRequest(r);
     await this.authorization.assertCollabPlaylistAccess(
       userId,
@@ -234,7 +219,7 @@ class PlaylistHandler implements IPlaylistHandler {
       playlistId
     );
     const response = this.presentationService.exportPlaylist(playlist);
-    return h.response(response).code(200);
+    return h.response(response).code(201);
   }
 }
 

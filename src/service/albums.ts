@@ -54,6 +54,16 @@ class AlbumService implements IServiceAlbum {
     };
   }
 
+  private convertToAlbum(result: any): Album {
+    return {
+      id: result.id,
+      name: result.name,
+      year: result.year,
+      likesCount: result.likes_count ?? 0,
+      coverUrl: result.cover_url ?? null,
+    };
+  }
+
   public async save(album: AlbumDTO): Promise<Album> {
     const id = this.generateId();
     const { name, year, likesCount, coverUrl } = album;
@@ -62,13 +72,7 @@ class AlbumService implements IServiceAlbum {
       values: [id, name, year, likesCount, coverUrl ?? null],
     };
     const result = await this.pool.query(query);
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      year: result.rows[0].year,
-      likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover_url ?? null,
-    };
+    return this.convertToAlbum(result.rows[0]);
   }
 
   public async getById(id: string): Promise<Album | null> {
@@ -80,13 +84,7 @@ class AlbumService implements IServiceAlbum {
     if (result.rows.length === 0) {
       return null;
     }
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      year: result.rows[0].year,
-      likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover_url ?? null,
-    };
+    return this.convertToAlbum(result.rows[0]);
   }
 
   public async delete(id: string): Promise<Album | null> {
@@ -98,13 +96,7 @@ class AlbumService implements IServiceAlbum {
     if (result.rows.length === 0) {
       return null;
     }
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      year: result.rows[0].year,
-      likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover_url ?? null,
-    };
+    return this.convertToAlbum(result.rows[0]);
   }
 
   public async update(
@@ -116,13 +108,7 @@ class AlbumService implements IServiceAlbum {
     if (result.rows.length === 0) {
       return null;
     }
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      year: result.rows[0].year,
-      likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover_url ?? null,
-    };
+    return this.convertToAlbum(result.rows[0]);
   }
 
   public async addLikes(id: string): Promise<Album | null> {
@@ -134,13 +120,7 @@ class AlbumService implements IServiceAlbum {
     if (result.rows.length === 0) {
       return null;
     }
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      year: result.rows[0].year,
-      likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover_url ?? null,
-    };
+    return this.convertToAlbum(result.rows[0]);
   }
 
   public async removeLikes(id: string): Promise<Album | null> {
@@ -152,13 +132,7 @@ class AlbumService implements IServiceAlbum {
     if (result.rows.length === 0) {
       return null;
     }
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      year: result.rows[0].year,
-      likesCount: result.rows[0].likesCount ?? 0,
-      coverUrl: result.rows[0].cover_url ?? null,
-    };
+    return this.convertToAlbum(result.rows[0]);
   }
 }
 

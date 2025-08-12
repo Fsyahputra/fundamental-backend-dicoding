@@ -35,6 +35,12 @@ class SongHandler implements ISongHandler {
     autoBind(this);
   }
 
+  private async deleteCache(id: string): Promise<void> {
+    await this.cacheService.del('songs:Param');
+    await this.cacheService.del(`songs`);
+    await this.cacheService.del(`songs:${id}`);
+  }
+
   public async getSongById(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = r.params['id'];
     const { data, fromCache } = await fetchFromCacheOrDefault<Song>(
@@ -50,19 +56,15 @@ class SongHandler implements ISongHandler {
 
   public async postSong(r: R, h: H): Promise<Lf.ReturnValue> {
     const songData = checkData<SongDTO>(r.payload, this.validator.postSchema);
-    await this.cacheService.del('songs:Param');
-    await this.cacheService.del(`songs`);
     const song = await this.service.save(songData);
-    await this.cacheService.del(`songs:${song.id}`);
+    await this.deleteCache(song.id);
     const response = this.presentationService.postSong(song);
     return h.response(response).code(201);
   }
 
   public async deleteSong(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = r.params['id'];
-    await this.cacheService.del('songs:Param');
-    await this.cacheService.del(`songs`);
-    await this.cacheService.del(`songs:${id}`);
+    await this.deleteCache(id);
     await checkIsExist<Song>(`Song with id ${id} not found`, () =>
       this.service.getById(id)
     );
@@ -73,9 +75,7 @@ class SongHandler implements ISongHandler {
 
   public async putSong(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = r.params['id'];
-    await this.cacheService.del('songs:Param');
-    await this.cacheService.del(`songs`);
-    await this.cacheService.del(`songs:${id}`);
+    await this.deleteCache(id);
     const songData = checkData<Partial<SongDTO>>(
       r.payload,
       this.validator.putSchema
@@ -84,7 +84,6 @@ class SongHandler implements ISongHandler {
       this.service.update(id, songData)
     );
     const response = this.presentationService.putSong(song);
-
     return h.response(response).code(200);
   }
 

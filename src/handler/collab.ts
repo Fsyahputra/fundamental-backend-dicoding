@@ -36,10 +36,11 @@ class CollabHandler implements ICollabhandler {
     autoBind(this);
   }
 
-  private async deleteCacheForAllCollaborators(playlistId: string) {
+  private async deleteCollabAndOwnerCache(playlistId: string, ownerId: string) {
     const allUserId = await this.collabService.getUserIdByPlaylistId(
       playlistId
     );
+    await this.cacheService.del(`user:${ownerId}:playlists`);
     if (allUserId) {
       await Promise.all(
         allUserId.map((userId) =>
@@ -59,8 +60,7 @@ class CollabHandler implements ICollabhandler {
       `Playlist with id ${collabData.playlistId} not found`,
       () => this.playlistService.getById(collabData.playlistId)
     );
-    await this.deleteCacheForAllCollaborators(collabData.playlistId);
-    await this.cacheService.del(`user:${id}:playlists`);
+    await this.deleteCollabAndOwnerCache(collabData.playlistId, id);
     await checkIsExist<TUser>(
       `User with id ${collabData.userId} not found`,
       () => this.userService.getById(collabData.userId)
@@ -78,8 +78,7 @@ class CollabHandler implements ICollabhandler {
       this.validator.deleteCollab
     );
     const id = this.authorizationService.getUserIdFromRequest(r);
-    await this.deleteCacheForAllCollaborators(collabData.playlistId);
-    await this.cacheService.del(`user:${id}:playlists`);
+    await this.deleteCollabAndOwnerCache(collabData.playlistId, id);
     const playlist = await checkIsExist<TPlaylist>(
       `Playlist with id ${collabData.playlistId} not found`,
       () => this.playlistService.getById(collabData.playlistId)

@@ -14,7 +14,7 @@ import type {
   Lifecycle as Lf,
 } from '@hapi/hapi';
 import type { IServiceSong } from '../types/songs.js';
-import { checkData, checkIsExist } from '../utils.js';
+import { checkData, checkIsExist, fetchFromCacheOrDefault } from '../utils.js';
 import type { IAlbumLikesService } from '../types/albumLikes.js';
 import type { IAuthorizationService } from '../types/authorization.js';
 import type { ICoverService, TCoverDTO } from '../types/cover.js';
@@ -167,28 +167,31 @@ class AlbumHandler implements IAlbumHandler {
       `Album with id ${id} not found`,
       () => this.service.update(id, { coverUrl: coverUrl })
     );
-    console.log(album);
     const response = this.presentationService.postCover(album);
     return h.response(response).code(201);
   }
 
   public async getLikeCount(r: R, h: H): Promise<Lf.ReturnValue> {
-    let likesCount: number | null = 0;
     const id = this.getAlbumIdFromRequest(r);
     await checkIsExist<Album>(`Album with id ${id} not found`, () =>
       this.service.getById(id)
     );
-    let fromCache: boolean = true;
-    likesCount = await this.cacheService.get<number>(`album:${id}:likesCount`);
-    if (likesCount === null) {
-      likesCount = await this.likesService.getLikesCount(id);
-      fromCache = false;
-      await this.cacheService.set(`album:${id}:likesCount`, likesCount);
-    }
-
-    const response = this.presentationService.getLikeCount(likesCount);
+    // let fromCache: boolean = true;
+    // likesCount = await this.cacheService.get<number>(`album:${id}:likesCount`);
+    // if (likesCount === null) {
+    //   likesCount = await this.likesService.getLikesCount(id);
+    //   // fromCache = false;
+    //   await this.cacheService.set(`album:${id}:likesCount`, likesCount);
+    // }
+    const { data, fromCache: cacheUsed } =
+      await fetchFromCacheOrDefault<number>(
+        `album:${id}:likesCount`,
+        this.cacheService,
+        () => this.likesService.getLikesCount(id)
+      );
+    const response = this.presentationService.getLikeCount(data);
     const res = h.response(response).code(200);
-    res.header('X-Data-source', fromCache ? 'cache' : '');
+    res.header('X-Data-source', cacheUsed ? 'cache' : '');
     return res;
   }
 

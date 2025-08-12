@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import type { Request } from '@hapi/hapi';
 import ClientError from './exception.js';
 import plugins from './plugins.js';
-// import pino from 'pino';
+import pino from 'pino';
 
 dotenv.config();
 
@@ -15,17 +15,17 @@ const serverConf: Hapi.ServerOptions = {
   host,
 };
 
-// const logger = pino({
-//   level: process.env['LOG_LEVEL'] || 'info',
-//   transport: {
-//     target: 'pino-pretty',
-//     options: {
-//       colorize: true, // Warna di terminal
-//       translateTime: 'SYS:standard', // Format waktu rapi
-//       ignore: 'pid,hostname', // Hilangkan field yang nggak penting
-//     },
-//   },
-// });
+const logger = pino({
+  level: process.env['LOG_LEVEL'] || 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true, // Warna di terminal
+      translateTime: 'SYS:standard', // Format waktu rapi
+      ignore: 'pid,hostname', // Hilangkan field yang nggak penting
+    },
+  },
+});
 
 const errorHandler = (r: Request, h: Hapi.ResponseToolkit) => {
   const response = r.response;
@@ -52,24 +52,24 @@ const errorHandler = (r: Request, h: Hapi.ResponseToolkit) => {
 const init = async () => {
   const server = Hapi.server(serverConf);
 
-  // logger.info('Starting server...');
+  logger.info('Starting server...');
 
-  // server.events.on('log', (event) => {
-  //   logger.info({ tags: event.tags }, JSON.stringify(event.data));
-  // });
+  server.events.on('log', (event) => {
+    logger.info({ tags: event.tags }, JSON.stringify(event.data));
+  });
 
-  // server.events.on('request', (request, _event) => {
-  //   logger.info(
-  //     {
-  //       method: request.method,
-  //       path: request.path,
-  //       remote: request.info.remoteAddress,
-  //       payload: request.payload,
-  //       authentication: request.auth.credentials,
-  //     },
-  //     'Incoming request'
-  //   );
-  // });
+  server.events.on('request', (request, _event) => {
+    logger.info(
+      {
+        method: request.method,
+        path: request.path,
+        remote: request.info.remoteAddress,
+        payload: request.payload,
+        authentication: request.auth.credentials,
+      },
+      'Incoming request'
+    );
+  });
 
   server.ext('onPreResponse', errorHandler);
   for (const plugin of plugins) {
@@ -85,7 +85,7 @@ const init = async () => {
   });
 
   await server.start();
-  console.log(`Server running at: ${server.info.uri}`);
+  logger.info(`Server running at: ${server.info.uri}`);
 };
 
 await init();

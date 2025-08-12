@@ -16,7 +16,7 @@ dotenv.config();
 
 class PlaylistService implements IPlayListService {
   private pool: Pool;
-  private exportQueue = process.env['EXPORT_QUEUE'] || 'export:playlist';
+  private exportQueue = process.env['RABBIT_QUEUE_NAME'] || 'export:playlist';
   private static TABLE_NAME = 'playlists';
   private static idPrefix = 'playlist' + '-';
   private msgService: IMsgService;
@@ -33,6 +33,14 @@ class PlaylistService implements IPlayListService {
     autoBind(this);
   }
 
+  private convertToPlaylist(row: any): TPlaylist {
+    return {
+      id: row.id,
+      name: row.name,
+      owner: row.owner,
+    };
+  }
+
   findManyPlaylist: (ids: string[]) => Promise<TPlaylist[]> = async (
     ids: string[]
   ) => {
@@ -44,11 +52,7 @@ class PlaylistService implements IPlayListService {
       values: [ids],
     };
     const result = await this.pool.query(query);
-    return result.rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      owner: row.owner,
-    }));
+    return result.rows.map((row) => this.convertToPlaylist(row));
   };
 
   private generateId(): string {
@@ -64,11 +68,7 @@ class PlaylistService implements IPlayListService {
       values: [id, name, owner],
     };
     const result = await this.pool.query(query);
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      owner: result.rows[0].owner,
-    };
+    return this.convertToPlaylist(result.rows[0]);
   }
 
   public async getAll(owner: string): Promise<TPlaylist[]> {
@@ -77,11 +77,7 @@ class PlaylistService implements IPlayListService {
       values: [owner],
     };
     const result = await this.pool.query(query);
-    return result.rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      owner: row.owner,
-    }));
+    return result.rows.map((row) => this.convertToPlaylist(row));
   }
 
   public async delete(id: string): Promise<TPlaylist> {
@@ -93,11 +89,7 @@ class PlaylistService implements IPlayListService {
     if (result.rows.length === 0) {
       throw new NotFoundError(`Playlist with id ${id} not found`);
     }
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      owner: result.rows[0].owner,
-    };
+    return this.convertToPlaylist(result.rows[0]);
   }
 
   public async getById(id: string): Promise<TPlaylist | null> {
@@ -109,11 +101,7 @@ class PlaylistService implements IPlayListService {
     if (result.rows.length === 0) {
       return null;
     }
-    return {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      owner: result.rows[0].owner,
-    };
+    return this.convertToPlaylist(result.rows[0]);
   }
 
   public async savePlaylistSong(
@@ -148,11 +136,7 @@ class PlaylistService implements IPlayListService {
       values: [owner],
     };
     const result = await this.pool.query(query);
-    return result.rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      owner: row.owner,
-    }));
+    return result.rows.map((row) => this.convertToPlaylist(row));
   }
 
   public async exportPlaylist(

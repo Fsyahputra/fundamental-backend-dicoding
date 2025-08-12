@@ -62,7 +62,7 @@ const playlistRoutes = (handler: IPlaylistHandler): ServerRoute[] => [
   },
   {
     method: 'POST',
-    path: '/export/playlist/{id}',
+    path: `/export${base}/{id}`,
     handler: handler.exportPlaylist,
     options: {
       auth: 'jwt',
