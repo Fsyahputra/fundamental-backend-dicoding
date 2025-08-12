@@ -131,9 +131,7 @@ class AlbumHandler implements IAlbumHandler {
       file: data.cover,
       mimeType,
     };
-
     const coverPath = await this.coverService.saveCoverToDisk(coverData);
-
     return h.response(coverPath).code(200);
   }
 
