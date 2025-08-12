@@ -27,6 +27,7 @@ const albumDeps: TAlbumDeps = {
   albumPresentation: presentationObject.album,
   authorizationService: serviceObject.authorizationService,
   validator: albumValidation,
+  coverService: serviceObject.coverService,
 };
 
 const albumHandler = new AlbumHandler(albumDeps);

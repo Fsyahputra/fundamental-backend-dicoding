@@ -17,6 +17,7 @@ import type { IServiceSong } from '../types/songs.js';
 import { checkData, checkIsExist } from '../utils.js';
 import type { IAlbumLikesService } from '../types/albumLikes.js';
 import type { IAuthorizationService } from '../types/authorization.js';
+import type { ICoverService, TCoverDTO } from '../types/cover.js';
 
 class AlbumHandler implements IAlbumHandler {
   private service: IServiceAlbum;
@@ -25,6 +26,7 @@ class AlbumHandler implements IAlbumHandler {
   private presentationService: IAlbumPresentation;
   private likesService: IAlbumLikesService;
   private authorizationService: IAuthorizationService;
+  private coverService: ICoverService;
 
   constructor(deps: TAlbumDeps) {
     this.service = deps.albumService;
@@ -33,6 +35,7 @@ class AlbumHandler implements IAlbumHandler {
     this.presentationService = deps.albumPresentation;
     this.likesService = deps.albumLikesService;
     this.authorizationService = deps.authorizationService;
+    this.coverService = deps.coverService;
     autoBind(this);
   }
 
@@ -121,13 +124,17 @@ class AlbumHandler implements IAlbumHandler {
 
   public async postCover(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = this.getAlbumIdFromRequest(r);
-    const cover = r.payload as { cover: string };
-    const updatedAlbum = await checkIsExist<Album>(
-      `Album with id ${id} not found`,
-      () => this.service.update(id, { coverUrl: cover.cover })
-    );
-    const response = this.presentationService.postCover(updatedAlbum);
-    return h.response(response).code(200);
+    const data = checkData<any>(r.payload, this.validator.postCoverSchema);
+    const mimeType = data.cover.hapi.headers['content-type'];
+    const coverData: TCoverDTO = {
+      albumId: id,
+      file: data.cover,
+      mimeType,
+    };
+
+    const coverPath = await this.coverService.saveCoverToDisk(coverData);
+
+    return h.response(coverPath).code(200);
   }
 
   public async getLikeCount(r: R, h: H): Promise<Lf.ReturnValue> {

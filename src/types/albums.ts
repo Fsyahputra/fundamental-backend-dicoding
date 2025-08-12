@@ -11,6 +11,8 @@ import type {
 import type { IServiceSong, Song, TSongPresentation } from './songs.js';
 import type { IAlbumLikesService } from './albumLikes.js';
 import type { IAuthorizationService } from './authorization.js';
+import type { ICoverService } from './cover.js';
+import type Joi from 'joi';
 
 export interface IServiceAlbum {
   save: (album: AlbumDTO) => Promise<Album>;
@@ -67,7 +69,9 @@ export type Album = AlbumDTO & {
   id: string;
 };
 
-export interface TAlbumSchema extends TSchemaObject<AlbumDTO> {}
+export interface TAlbumSchema extends TSchemaObject<AlbumDTO> {
+  postCoverSchema: Joi.ObjectSchema;
+}
 
 export type TAlbumDeps = {
   albumService: IServiceAlbum;
@@ -76,4 +80,5 @@ export type TAlbumDeps = {
   albumLikesService: IAlbumLikesService;
   authorizationService: IAuthorizationService;
   validator: TAlbumSchema;
+  coverService: ICoverService;
 };

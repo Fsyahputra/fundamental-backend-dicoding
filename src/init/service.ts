@@ -15,6 +15,7 @@ import AuthorizationService from '../service/authorization.js';
 import type { IMsgService } from '../types/msg.js';
 import RabbitMqMsgImpl from '../service/msg.js';
 import AlbumLikesService from '../service/albumLikes.js';
+import CoverService from '../service/cover.js';
 
 dotenv.config();
 
@@ -26,6 +27,9 @@ export const pool = new Pool({
   port: Number(process.env['PG_PORT']) || 5432,
 });
 
+const coverService = new CoverService(
+  process.env['COVER_UPLOAD_PATH'] || './uploads/covers'
+);
 const accessTokenSecret =
   process.env['ACCESS_TOKEN_KEY'] || 'defaultAccessTokenKey';
 const refreshTokenSecret =
@@ -70,6 +74,7 @@ const serviceObject = {
   authorizationService,
   msgService,
   albumLikesService,
+  coverService,
 };
 
 export default serviceObject;
