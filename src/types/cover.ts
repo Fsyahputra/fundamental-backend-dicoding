@@ -6,7 +6,12 @@ export type TCoverDTO = {
   mimeType: string;
 };
 
+export type CoverImageResponse = {
+  file: Readable;
+  extension: string;
+  mimeType: string;
+};
 export interface ICoverService {
   saveCoverToDisk: (coverData: TCoverDTO) => Promise<string>;
-  getCoverFromDisk: (albumId: string) => Promise<Readable>;
+  getCoverFromDisk: (albumId: string) => Promise<CoverImageResponse>;
 }

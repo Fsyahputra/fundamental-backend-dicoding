@@ -45,7 +45,7 @@ class AlbumService implements IServiceAlbum {
     UPDATE ${AlbumService.TABLE_NAME}
     SET ${setClause}
     WHERE id = $${entries.length + 1}
-    RETURNING id, name, year, likes_count, cover
+    RETURNING id, name, year, likes_count, cover_url
   `;
 
     return {
@@ -58,7 +58,7 @@ class AlbumService implements IServiceAlbum {
     const id = this.generateId();
     const { name, year, likesCount, coverUrl } = album;
     const query = {
-      text: `INSERT INTO ${AlbumService.TABLE_NAME} (id, name, year, likes_count, cover) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, year, likes_count, cover`,
+      text: `INSERT INTO ${AlbumService.TABLE_NAME} (id, name, year, likes_count, cover_url) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, year, likes_count, cover_url`,
       values: [id, name, year, likesCount, coverUrl ?? null],
     };
     const result = await this.pool.query(query);
@@ -73,7 +73,7 @@ class AlbumService implements IServiceAlbum {
 
   public async getById(id: string): Promise<Album | null> {
     const query = {
-      text: `SELECT id, name, year, likes_count, cover FROM ${AlbumService.TABLE_NAME} WHERE id = $1`,
+      text: `SELECT id, name, year, likes_count, cover_url FROM ${AlbumService.TABLE_NAME} WHERE id = $1`,
       values: [id],
     };
     const result = await this.pool.query(query);
@@ -91,7 +91,7 @@ class AlbumService implements IServiceAlbum {
 
   public async delete(id: string): Promise<Album | null> {
     const query = {
-      text: `DELETE FROM ${AlbumService.TABLE_NAME} WHERE id = $1 RETURNING id, name, year, likes_count, cover`,
+      text: `DELETE FROM ${AlbumService.TABLE_NAME} WHERE id = $1 RETURNING id, name, year, likes_count, cover_url`,
       values: [id],
     };
     const result = await this.pool.query(query);
@@ -127,7 +127,7 @@ class AlbumService implements IServiceAlbum {
 
   public async addLikes(id: string): Promise<Album | null> {
     const query = {
-      text: `UPDATE ${AlbumService.TABLE_NAME} SET likes_count = likes_count + 1 WHERE id = $1 RETURNING id, name, year, likes_count, cover`,
+      text: `UPDATE ${AlbumService.TABLE_NAME} SET likes_count = likes_count + 1 WHERE id = $1 RETURNING id, name, year, likes_count, cover_url`,
       values: [id],
     };
     const result = await this.pool.query(query);
@@ -145,7 +145,7 @@ class AlbumService implements IServiceAlbum {
 
   public async removeLikes(id: string): Promise<Album | null> {
     const query = {
-      text: `UPDATE ${AlbumService.TABLE_NAME} SET likes_count = likes_count - 1 WHERE id = $1 RETURNING id, name, year, likes_count, cover`,
+      text: `UPDATE ${AlbumService.TABLE_NAME} SET likes_count = likes_count - 1 WHERE id = $1 RETURNING id, name, year, likes_count, cover_url`,
       values: [id],
     };
     const result = await this.pool.query(query);

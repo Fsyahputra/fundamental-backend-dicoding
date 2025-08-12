@@ -32,6 +32,7 @@ export interface IAlbumHandler {
   deleteLike: (r: R, h: H) => Promise<Lf.ReturnValue>;
   postCover: (r: R, h: H) => Promise<Lf.ReturnValue>;
   getLikeCount: (r: R, h: H) => Promise<Lf.ReturnValue>;
+  getCoverById: (r: R, h: H) => Promise<Lf.ReturnValue>;
 }
 
 export type TGetAlbumByIdPresentation = {

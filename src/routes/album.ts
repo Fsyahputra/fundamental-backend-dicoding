@@ -68,6 +68,14 @@ const albumRoutes = (handler: IAlbumHandler): ServerRoute[] => [
       auth: 'jwt',
     },
   },
+  {
+    method: 'GET',
+    path: `${base}/{id}/cover`,
+    handler: handler.getCoverById,
+    options: {
+      auth: false,
+    },
+  },
 ];
 
 export default albumRoutes;

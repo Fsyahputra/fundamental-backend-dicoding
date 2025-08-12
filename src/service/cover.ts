@@ -1,4 +1,8 @@
-import type { ICoverService, TCoverDTO } from '../types/cover.js';
+import type {
+  CoverImageResponse,
+  ICoverService,
+  TCoverDTO,
+} from '../types/cover.js';
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
@@ -127,7 +131,7 @@ class CoverService implements ICoverService {
     return filename;
   }
 
-  public async getCoverFromDisk(albumId: string): Promise<Readable> {
+  public async getCoverFromDisk(albumId: string): Promise<CoverImageResponse> {
     const lockKey = `${albumId}-cover`;
 
     while (this.moveFileLock.has(lockKey)) {
@@ -152,7 +156,14 @@ class CoverService implements ICoverService {
       const coverFilePath = path.join(this.uploadPath, foundFile);
       const fileBuffer = await fs.promises.readFile(coverFilePath);
       const fileStream = Readable.from(fileBuffer);
-      return fileStream;
+      const mimeType = mime.lookup(coverFilePath);
+      const extension =
+        mime.extension(typeof mimeType === 'string' ? mimeType : '') || 'jpg';
+      return {
+        file: fileStream,
+        extension,
+        mimeType: typeof mimeType === 'string' ? mimeType : 'image/jpeg',
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new ClientError(`Failed to get cover: ${message}`);

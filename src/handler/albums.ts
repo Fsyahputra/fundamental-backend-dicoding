@@ -47,6 +47,10 @@ class AlbumHandler implements IAlbumHandler {
     return id;
   }
 
+  private generateCoverUrl(albumId: string): string {
+    return `http://localhost:3000/albums/${albumId}/cover`;
+  }
+
   public async getAlbumById(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = this.getAlbumIdFromRequest(r);
     const album = await checkIsExist<Album>(
@@ -125,6 +129,7 @@ class AlbumHandler implements IAlbumHandler {
   public async postCover(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = this.getAlbumIdFromRequest(r);
     const data = checkData<any>(r.payload, this.validator.postCoverSchema);
+
     const mimeType = data.cover.hapi.headers['content-type'];
     const coverData: TCoverDTO = {
       albumId: id,
@@ -132,6 +137,9 @@ class AlbumHandler implements IAlbumHandler {
       mimeType,
     };
     const coverPath = await this.coverService.saveCoverToDisk(coverData);
+    checkIsExist<Album>(`Album with id ${id} not found`, () =>
+      this.service.update(id, { coverUrl: this.generateCoverUrl(id) })
+    );
     return h.response(coverPath).code(200);
   }
 
@@ -143,6 +151,19 @@ class AlbumHandler implements IAlbumHandler {
     const likesCount = await this.likesService.getLikesCount(id);
     const response = await this.presentationService.getLikeCount(likesCount);
     return h.response(response).code(200);
+  }
+
+  public async getCoverById(r: R, h: H): Promise<Lf.ReturnValue> {
+    const id = this.getAlbumIdFromRequest(r);
+    const cover = await this.coverService.getCoverFromDisk(id);
+    return h
+      .response(cover.file)
+      .type(cover.mimeType)
+      .header(
+        'Content-Disposition',
+        `inline; filename="${id}.${cover.extension}"`
+      )
+      .code(200);
   }
 }
 
