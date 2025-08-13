@@ -47,7 +47,7 @@ const postCoverSchema: Joi.ObjectSchema = Joi.object({
         .required(),
     }).required(),
   })
-    .unknown(true) // <== supaya properti internal stream seperti _events tidak error
+    .unknown(true)
     .required(),
 });
 

@@ -6,6 +6,7 @@ import type {
 } from '../types/albums.js';
 import type { TDataResponse, TMessageResponse } from '../types/shared.js';
 import type { Song, TSongPresentation } from '../types/songs.js';
+import ALBUM from '../constant/albums.js';
 
 class AlbumPresentation implements IAlbumPresentation {
   private mapSongToPresentation(song: Song): TSongPresentation {
@@ -53,32 +54,32 @@ class AlbumPresentation implements IAlbumPresentation {
   public putAlbum(album: Album): TMessageResponse {
     return {
       status: 'success',
-      message: `Album with id ${album.id} updated successfully`,
+      message: ALBUM.PRESENTATION_MSG.putAlbum(album.id),
     };
   }
 
   public deleteAlbum(album: Album): TMessageResponse {
     return {
       status: 'success',
-      message: `Album with id ${album.id} deleted successfully`,
+      message: ALBUM.PRESENTATION_MSG.deleteAlbum(album.id),
     };
   }
   public postLike(album: Album): TMessageResponse {
     return {
       status: 'success',
-      message: `Album with id ${album.id} liked successfully`,
+      message: ALBUM.PRESENTATION_MSG.postLike(album.id),
     };
   }
   public deleteLike(album: Album): TMessageResponse {
     return {
       status: 'success',
-      message: `Like removed from album with id ${album.id} successfully`,
+      message: ALBUM.PRESENTATION_MSG.deleteLike(album.id),
     };
   }
   public postCover(_album: Album): TMessageResponse {
     return {
       status: 'success',
-      message: 'Sampul berhasil diunggah',
+      message: ALBUM.PRESENTATION_MSG.POST_COVER,
     };
   }
 

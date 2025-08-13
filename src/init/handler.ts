@@ -10,6 +10,7 @@ import UserHandler from '../handler/user.js';
 import presentationObject from './presentation.js';
 import type { TAlbumDeps } from '../types/albums.js';
 import type { TCollabServiceDependency } from '../types/collab.js';
+import config from '../conf/conf.js';
 
 const playListDeps: TPlaylistServiceDependency = {
   activityService: serviceObject.activityService,
@@ -31,6 +32,8 @@ const albumDeps: TAlbumDeps = {
   validator: albumValidation,
   coverService: serviceObject.coverService,
   cacheService: serviceObject.cacheService,
+  hostname: config.server.host,
+  port: config.server.port,
 };
 
 const collabDeps: TCollabServiceDependency = {

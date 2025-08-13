@@ -2,12 +2,13 @@ import type { Pool } from 'pg';
 import type { Album, AlbumDTO, IServiceAlbum } from '../types/albums.js';
 import { nanoid } from 'nanoid';
 import autoBind from 'auto-bind';
+import ALBUM from '../constant/albums.js';
 
 class AlbumService implements IServiceAlbum {
   private pool: Pool;
   private idGenerator: () => string;
-  private static TABLE_NAME = 'albums';
-  private static idPrefix = 'album' + '-';
+  private static TABLE_NAME = ALBUM.SERVICE.TABLE_NAME;
+  private static idPrefix = ALBUM.SERVICE.ID_PREFIX;
 
   constructor(pool: Pool, idGenerator: () => string = nanoid) {
     this.pool = pool;
@@ -33,7 +34,7 @@ class AlbumService implements IServiceAlbum {
       .map(([k, v]) => [this.toSnakeCase(k), v]); // konversi key
 
     if (entries.length === 0) {
-      throw new Error('Nothing to update');
+      throw new Error(ALBUM.SERVICE.ERROR_MESSAGES.NOTHING_TO_UPDATE);
     }
 
     const setClause = entries
@@ -64,6 +65,13 @@ class AlbumService implements IServiceAlbum {
     };
   }
 
+  private checkResult(result: any): boolean {
+    if (result.rows.length === 0) {
+      return false;
+    }
+    return true;
+  }
+
   public async save(album: AlbumDTO): Promise<Album> {
     const id = this.generateId();
     const { name, year, likesCount, coverUrl } = album;
@@ -81,7 +89,7 @@ class AlbumService implements IServiceAlbum {
       values: [id],
     };
     const result = await this.pool.query(query);
-    if (result.rows.length === 0) {
+    if (!this.checkResult(result)) {
       return null;
     }
     return this.convertToAlbum(result.rows[0]);
@@ -93,7 +101,7 @@ class AlbumService implements IServiceAlbum {
       values: [id],
     };
     const result = await this.pool.query(query);
-    if (result.rows.length === 0) {
+    if (!this.checkResult(result)) {
       return null;
     }
     return this.convertToAlbum(result.rows[0]);
@@ -105,7 +113,7 @@ class AlbumService implements IServiceAlbum {
   ): Promise<Album | null> {
     const query = this.buildUpdateQuery(album, id);
     const result = await this.pool.query(query);
-    if (result.rows.length === 0) {
+    if (!this.checkResult(result)) {
       return null;
     }
     return this.convertToAlbum(result.rows[0]);
@@ -117,7 +125,7 @@ class AlbumService implements IServiceAlbum {
       values: [id],
     };
     const result = await this.pool.query(query);
-    if (result.rows.length === 0) {
+    if (!this.checkResult(result)) {
       return null;
     }
     return this.convertToAlbum(result.rows[0]);
@@ -129,7 +137,7 @@ class AlbumService implements IServiceAlbum {
       values: [id],
     };
     const result = await this.pool.query(query);
-    if (result.rows.length === 0) {
+    if (!this.checkResult(result)) {
       return null;
     }
     return this.convertToAlbum(result.rows[0]);

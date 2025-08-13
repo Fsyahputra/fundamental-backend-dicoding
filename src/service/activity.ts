@@ -23,6 +23,17 @@ class ActivityService implements IActivityService {
     return id;
   }
 
+  private convertToActivity(row: any): TActivity {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      songId: row.song_id,
+      action: row.action,
+      playlistId: row.playlist_id,
+      time: row.time,
+    };
+  }
+
   private async insertActivity(activity: TActivityDTO): Promise<TActivity> {
     const id = this.generateId();
     const newDate = new Date();
@@ -52,14 +63,7 @@ class ActivityService implements IActivityService {
     if (result.rows.length === 0) {
       return [];
     }
-    return result.rows.map((row) => ({
-      id: row.id,
-      userId: row.user_id,
-      songId: row.song_id,
-      action: row.action,
-      playlistId: row.playlist_id,
-      time: row.time,
-    }));
+    return result.rows.map((row) => this.convertToActivity(row));
   }
 
   public async addActivity(

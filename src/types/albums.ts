@@ -84,4 +84,6 @@ export type TAlbumDeps = {
   validator: TAlbumSchema;
   coverService: ICoverService;
   cacheService: ICacheService;
+  hostname: string;
+  port: number;
 };

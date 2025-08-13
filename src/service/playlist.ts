@@ -10,13 +10,11 @@ import { NotFoundError } from '../exception.js';
 import autoBind from 'auto-bind';
 import type { IMsgService } from '../types/msg.js';
 import { checkIsExist } from '../utils.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import config from '../conf/conf.js';
 
 class PlaylistService implements IPlayListService {
   private pool: Pool;
-  private exportQueue = process.env['RABBIT_QUEUE_NAME'] || 'export:playlist';
+  private exportQueue = config.rabbitmq.exportQueue;
   private static TABLE_NAME = 'playlists';
   private static idPrefix = 'playlist' + '-';
   private msgService: IMsgService;

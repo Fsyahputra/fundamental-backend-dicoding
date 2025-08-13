@@ -10,8 +10,8 @@ export const checkData = <T>(data: any, schema: Joi.ObjectSchema): T => {
   return value;
 };
 
-// Utility function to transform null or undefined function results into NotFoundError
-// Throws NotFoundError if the value is null or undefined
+/* Utility function to transform null or undefined function results into NotFoundError
+ Throws NotFoundError if the value is null or undefined */
 export const checkIsExist = async <T>(
   msg: string = 'Data not found',
   func: () => Promise<T | null>
@@ -23,6 +23,7 @@ export const checkIsExist = async <T>(
   return result;
 };
 
+/* Utility function to fetch data from cache or a database */
 export const fetchFromCacheOrDefault = async <T>(
   id: string,
   cacheService: ICacheService,

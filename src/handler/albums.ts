@@ -19,6 +19,7 @@ import type { IAlbumLikesService } from '../types/albumLikes.js';
 import type { IAuthorizationService } from '../types/authorization.js';
 import type { ICoverService, TCoverDTO } from '../types/cover.js';
 import type { ICacheService } from '../types/cache.js';
+import ALBUM from '../constant/albums.js';
 
 class AlbumHandler implements IAlbumHandler {
   private service: IServiceAlbum;
@@ -29,6 +30,8 @@ class AlbumHandler implements IAlbumHandler {
   private authorizationService: IAuthorizationService;
   private coverService: ICoverService;
   private cacheService: ICacheService;
+  private hostname: string;
+  private port: number;
 
   constructor(deps: TAlbumDeps) {
     this.service = deps.albumService;
@@ -39,6 +42,8 @@ class AlbumHandler implements IAlbumHandler {
     this.authorizationService = deps.authorizationService;
     this.coverService = deps.coverService;
     this.cacheService = deps.cacheService;
+    this.hostname = deps.hostname;
+    this.port = deps.port;
     autoBind(this);
   }
 
@@ -46,7 +51,6 @@ class AlbumHandler implements IAlbumHandler {
     if (typeof payload === 'object' && payload !== null && 'cover' in payload) {
       const data = checkData<any>(payload, this.validator.postCoverSchema);
       const mimeType = data.cover.hapi.headers['content-type'];
-
       const coverData: TCoverDTO = {
         albumId,
         file: data.cover,
@@ -54,31 +58,55 @@ class AlbumHandler implements IAlbumHandler {
       };
       await this.coverService.saveCoverToDisk(coverData);
 
-      await checkIsExist<Album>(`Album with id ${albumId} not found`, () =>
-        this.service.update(albumId, {
-          coverUrl: this.generateCoverUrl(albumId),
-        })
+      await this.ensureAlbumExists(
+        (id) =>
+          this.service.update(id, { coverUrl: this.generateCoverUrl(id) }),
+        albumId
       );
     }
+  }
+
+  private async getLikesCacheWithFallback(
+    key: string,
+    id: string
+  ): Promise<{ data: number; fromCache: boolean }> {
+    const { data, fromCache } = await fetchFromCacheOrDefault<number>(
+      key,
+      this.cacheService,
+      () => this.likesService.getLikesCount(id)
+    );
+    const res = { data, fromCache };
+    return res;
+  }
+
+  private async ensureAlbumExists(
+    method: (id: string) => Promise<Album | null>,
+    id: string
+  ): Promise<Album> {
+    const album = checkIsExist<Album>(
+      ALBUM.HANDLER.ERROR_MESSAGES.albumNotFound(id),
+      () => method(id)
+    );
+    return album;
   }
 
   private getAlbumIdFromRequest(r: R): string {
     const id = r.params['id'];
     if (!id) {
-      throw new Error('Album ID is required');
+      throw new Error(ALBUM.HANDLER.ERROR_MESSAGES.ALBUM_ID_REQUIRED);
     }
     return id;
   }
 
   private generateCoverUrl(albumId: string): string {
-    return `http://localhost:5000/albums/${albumId}/covers`;
+    return `http://${this.hostname}:${this.port}/albums/${albumId}/covers`;
   }
 
   public async getAlbumById(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = this.getAlbumIdFromRequest(r);
-    const album = await checkIsExist<Album>(
-      `Album with id ${id} not found`,
-      () => this.service.getById(id)
+    const album = await this.ensureAlbumExists(
+      (id) => this.service.getById(id),
+      id
     );
     const songs = await this.songService.getByAlbumId(id);
     const response = this.presentationService.getAlbumById(album, songs);
@@ -101,9 +129,9 @@ class AlbumHandler implements IAlbumHandler {
       this.validator.putSchema
     );
 
-    const album = await checkIsExist<Album>(
-      `Album with id ${id} not found`,
-      () => this.service.update(id, value)
+    const album = await this.ensureAlbumExists(
+      (id) => this.service.update(id, value),
+      id
     );
     const response = this.presentationService.putAlbum(album);
     return h.response(response).code(200);
@@ -111,9 +139,9 @@ class AlbumHandler implements IAlbumHandler {
 
   public async deleteAlbum(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = this.getAlbumIdFromRequest(r);
-    const album = await checkIsExist<Album>(
-      `Album with id ${id} not found`,
-      () => this.service.delete(id)
+    const album = await this.ensureAlbumExists(
+      (id) => this.service.delete(id),
+      id
     );
     const response = this.presentationService.deleteAlbum(album);
     return h.response(response).code(200);
@@ -122,11 +150,11 @@ class AlbumHandler implements IAlbumHandler {
   public async postLike(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = this.getAlbumIdFromRequest(r);
     const userId = this.authorizationService.getUserIdFromRequest(r);
-    const album = await checkIsExist<Album>(
-      `Album with id ${id} not found`,
-      () => this.service.getById(id)
+    const album = await this.ensureAlbumExists(
+      (id) => this.service.getById(id),
+      id
     );
-    await this.cacheService.del(`album:${id}:likesCount`);
+    await this.cacheService.del(ALBUM.HANDLER.CACHE_KEYS.likesCount(id));
     await this.likesService.addLike({
       userId,
       albumId: id,
@@ -138,11 +166,11 @@ class AlbumHandler implements IAlbumHandler {
   public async deleteLike(r: R, h: H): Promise<Lf.ReturnValue> {
     const userId = this.authorizationService.getUserIdFromRequest(r);
     const id = this.getAlbumIdFromRequest(r);
-    const album = await checkIsExist<Album>(
-      `Album with id ${id} not found`,
-      () => this.service.getById(id)
+    const album = await this.ensureAlbumExists(
+      (id) => this.service.getById(id),
+      id
     );
-    await this.cacheService.del(`album:${id}:likesCount`);
+    await this.cacheService.del(ALBUM.HANDLER.CACHE_KEYS.likesCount(id));
     await this.likesService.deleteLike({
       userId,
       albumId: id,
@@ -163,9 +191,9 @@ class AlbumHandler implements IAlbumHandler {
     };
     const coverUrl = this.generateCoverUrl(id);
     await this.coverService.saveCoverToDisk(coverData);
-    const album = await checkIsExist<Album>(
-      `Album with id ${id} not found`,
-      () => this.service.update(id, { coverUrl: coverUrl })
+    const album = await this.ensureAlbumExists(
+      (id) => this.service.update(id, { coverUrl: coverUrl }),
+      id
     );
     const response = this.presentationService.postCover(album);
     return h.response(response).code(201);
@@ -173,22 +201,11 @@ class AlbumHandler implements IAlbumHandler {
 
   public async getLikeCount(r: R, h: H): Promise<Lf.ReturnValue> {
     const id = this.getAlbumIdFromRequest(r);
-    await checkIsExist<Album>(`Album with id ${id} not found`, () =>
-      this.service.getById(id)
+    await this.ensureAlbumExists((id) => this.service.getById(id), id);
+    const { data, fromCache: cacheUsed } = await this.getLikesCacheWithFallback(
+      ALBUM.HANDLER.CACHE_KEYS.likesCount(id),
+      id
     );
-    // let fromCache: boolean = true;
-    // likesCount = await this.cacheService.get<number>(`album:${id}:likesCount`);
-    // if (likesCount === null) {
-    //   likesCount = await this.likesService.getLikesCount(id);
-    //   // fromCache = false;
-    //   await this.cacheService.set(`album:${id}:likesCount`, likesCount);
-    // }
-    const { data, fromCache: cacheUsed } =
-      await fetchFromCacheOrDefault<number>(
-        `album:${id}:likesCount`,
-        this.cacheService,
-        () => this.likesService.getLikesCount(id)
-      );
     const response = this.presentationService.getLikeCount(data);
     const res = h.response(response).code(200);
     res.header('X-Data-source', cacheUsed ? 'cache' : '');

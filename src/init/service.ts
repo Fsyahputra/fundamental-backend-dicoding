@@ -8,7 +8,6 @@ import MusicCoordService from '../service/musicCoord.js';
 import PlaylistService from '../service/playlist.js';
 import UserService from '../service/user.js';
 import { Pool } from 'pg';
-import dotenv from 'dotenv';
 import JwtAuthScheme from '../jwtScheme.js';
 import PlaylistSongService from '../service/playlistSong.js';
 import AuthorizationService from '../service/authorization.js';
@@ -19,8 +18,6 @@ import CoverService from '../service/cover.js';
 import CacheServiceRedisImpl from '../service/cache.js';
 import config from '../conf/conf.js';
 
-dotenv.config();
-
 export const pool = new Pool({
   user: config.pg.pgUser,
   password: config.pg.pgPassword,
@@ -29,11 +26,14 @@ export const pool = new Pool({
   port: config.pg.pgPort,
 });
 
-const cacheService = new CacheServiceRedisImpl(config.url.redisUrl, 1800);
+const cacheService = new CacheServiceRedisImpl(
+  config.redis.url,
+  config.redis.ttl
+);
 const coverService = new CoverService(config.coverUploadPath);
 const playlistSongService = new PlaylistSongService(pool, nanoid);
 const albumLikesService = new AlbumLikesService(pool, nanoid);
-const msgService: IMsgService = new RabbitMqMsgImpl(config.url.rabbitMqUrl);
+const msgService: IMsgService = new RabbitMqMsgImpl(config.rabbitmq.url);
 const activityService = new ActivityService(pool);
 const albumService = new AlbumService(pool, nanoid);
 const songService = new SongsService(pool, nanoid);

@@ -1,14 +1,12 @@
 import Hapi from '@hapi/hapi';
-import dotenv from 'dotenv';
 import type { Request } from '@hapi/hapi';
 import ClientError from './exception.js';
 import plugins from './plugins.js';
 import pino from 'pino';
+import config from './conf/conf.js';
 
-dotenv.config();
-
-const port = process.env['PORT'] || 3000;
-const host = 'localhost';
+const port = config.server.port;
+const host = config.server.host;
 
 const serverConf: Hapi.ServerOptions = {
   port,
@@ -16,7 +14,7 @@ const serverConf: Hapi.ServerOptions = {
 };
 
 const logger = pino({
-  level: process.env['LOG_LEVEL'] || 'info',
+  level: 'info',
   transport: {
     target: 'pino-pretty',
     options: {
