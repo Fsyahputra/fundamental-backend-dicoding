@@ -3,12 +3,13 @@ import type { ICollabService, TCollab, TCollabDTO } from '../types/collab.js';
 import { nanoid } from 'nanoid';
 import { NotFoundError } from '../exception.js';
 import autoBind from 'auto-bind';
+import COLLAB from '../constant/collab.js';
 
 class CollabService implements ICollabService {
   private idGenerator: () => string;
   private pool: Pool;
-  private static TABLE_NAME = 'collaborations';
-  private static idPrefix = 'collab' + '-';
+  private static TABLE_NAME = COLLAB.SERVICE.TABLE_NAME;
+  private static idPrefix = COLLAB.SERVICE.ID_PREFIX;
 
   constructor(pool: Pool, idGenerator: () => string = nanoid) {
     this.pool = pool;
@@ -29,6 +30,13 @@ class CollabService implements ICollabService {
     return id;
   }
 
+  private ensureCollabExists(result: any): null | void {
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return result.rows[0];
+  }
+
   public async addCollab(collab: TCollabDTO): Promise<TCollab> {
     const id = this.generateId();
     const result = await this.pool.query(
@@ -43,8 +51,10 @@ class CollabService implements ICollabService {
       `DELETE FROM ${CollabService.TABLE_NAME} WHERE playlist_id = $1 AND user_id = $2 RETURNING *`,
       [collab.playlistId, collab.userId]
     );
-    if (result.rows.length === 0) {
-      throw new NotFoundError('Collaboration not found');
+    if (!this.ensureCollabExists(result)) {
+      throw new NotFoundError(
+        COLLAB.SERVICE.ERROR_MESSAGES.COLLABORATION_NOT_FOUND
+      );
     }
     return result.rows[0];
   }
@@ -56,7 +66,7 @@ class CollabService implements ICollabService {
       `SELECT user_id FROM ${CollabService.TABLE_NAME} WHERE playlist_id = $1`,
       [playlistId]
     );
-    if (result.rows.length === 0) {
+    if (!this.ensureCollabExists(result)) {
       return null;
     }
     return result.rows.map((row) => row.user_id);

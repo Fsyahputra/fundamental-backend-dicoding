@@ -19,6 +19,7 @@ import type {
 import { UnauthorizedError } from '../exception.js';
 import autoBind from 'auto-bind';
 import { checkData } from '../utils.js';
+import USER from '../constant/user.js';
 
 class UserHandler implements IUserHandler {
   private userService: IUserService;
@@ -40,7 +41,9 @@ class UserHandler implements IUserHandler {
   private async ensureUserExists(username: string): Promise<TUser> {
     const user = await this.userService.getByUsername(username);
     if (!user) {
-      throw new UnauthorizedError(`User with username ${username} not found`);
+      throw new UnauthorizedError(
+        USER.HANDLER.ERROR_MESSAGES.userNotFound(username)
+      );
     }
     return user;
   }

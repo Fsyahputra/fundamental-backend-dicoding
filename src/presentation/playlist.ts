@@ -1,4 +1,3 @@
-import { NotFoundError } from '../exception.js';
 import type { TActivity, TActivityPresentation } from '../types/activity.js';
 import type { PlaylistSong } from '../types/musicCoord.js';
 import type {
@@ -9,6 +8,7 @@ import type {
 import type { TDataResponse, TMessageResponse } from '../types/shared.js';
 import type { IServiceSong, Song, TGetSongs } from '../types/songs.js';
 import type { IUserService } from '../types/users.js';
+import PLAYLIST from '../constant/playlist.js';
 
 class PlaylistPresentation implements IPlaylistPresentation {
   private songService: IServiceSong;
@@ -52,7 +52,10 @@ class PlaylistPresentation implements IPlaylistPresentation {
   public postSongToPlaylist(playlist: TPlaylist, song: Song): TMessageResponse {
     return {
       status: 'success',
-      message: `Song ${song.title} added to playlist ${playlist.name}`,
+      message: PLAYLIST.PRESENTATION_MSG.postSongToPlaylist(
+        playlist.id,
+        song.id
+      ),
     };
   }
 
@@ -87,7 +90,7 @@ class PlaylistPresentation implements IPlaylistPresentation {
   public deletePlaylistById(playlist: TPlaylist): TMessageResponse {
     return {
       status: 'success',
-      message: `Playlist ${playlist.name} deleted successfully`,
+      message: PLAYLIST.PRESENTATION_MSG.deletePlaylistById(playlist.name),
     };
   }
 
@@ -97,7 +100,10 @@ class PlaylistPresentation implements IPlaylistPresentation {
   ): TMessageResponse {
     return {
       status: 'success',
-      message: `Song ${song.title} removed from playlist ${playlist.name}`,
+      message: PLAYLIST.PRESENTATION_MSG.deleteSongFromPlaylistId(
+        playlist.name,
+        song.title
+      ),
     };
   }
 
@@ -132,9 +138,6 @@ class PlaylistPresentation implements IPlaylistPresentation {
       )
     );
 
-    if (activities.length === 0) {
-      throw new NotFoundError(`No activities found for the playlist`);
-    }
     return {
       status: 'success',
       data: {
@@ -147,7 +150,7 @@ class PlaylistPresentation implements IPlaylistPresentation {
   public exportPlaylist(_playlist: TPlaylist): TMessageResponse {
     return {
       status: 'success',
-      message: 'Permintaan Anda sedang kami proses',
+      message: PLAYLIST.PRESENTATION_MSG.EXPORT_PLAYLIST,
     };
   }
 }

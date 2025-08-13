@@ -1,5 +1,6 @@
 import type { TDataResponse, TMessageResponse } from '../types/shared.js';
 import type { ISongPresentation, Song, TGetSongs } from '../types/songs.js';
+import SONG from '../constant/songs.js';
 
 class SongPresentation implements ISongPresentation {
   public getSongById: (song: Song) => TDataResponse<{ song: Song }> = (
@@ -27,14 +28,14 @@ class SongPresentation implements ISongPresentation {
   public putSong: (song: Song) => TMessageResponse = (song) => {
     return {
       status: 'success',
-      message: `Song with id ${song.id} updated successfully`,
+      message: SONG.PRESENTATION_MSG.putSong(song.id),
     };
   };
 
   public deleteSong: (song: Song) => TMessageResponse = (song) => {
     return {
       status: 'success',
-      message: `Song with id ${song.id} deleted successfully`,
+      message: SONG.PRESENTATION_MSG.deleteSong(song.id),
     };
   };
 

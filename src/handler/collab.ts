@@ -17,6 +17,7 @@ import { checkData, checkIsExist } from '../utils.js';
 import type { IAuthorizationService } from '../types/authorization.js';
 import collabValidator from '../schema/collab.js';
 import type { ICacheService } from '../types/cache.js';
+import COLLAB from '../constant/collab.js';
 
 class CollabHandler implements ICollabhandler {
   private validator = collabValidator;
@@ -40,14 +41,26 @@ class CollabHandler implements ICollabhandler {
     const allUserId = await this.collabService.getUserIdByPlaylistId(
       playlistId
     );
-    await this.cacheService.del(`user:${ownerId}:playlists`);
+    await this.cacheService.del(
+      COLLAB.HANDLER.CACHE_KEYS.usersPlaylists(ownerId)
+    );
     if (allUserId) {
       await Promise.all(
         allUserId.map((userId) =>
-          this.cacheService.del(`user:${userId}:playlists`)
+          this.cacheService.del(
+            COLLAB.HANDLER.CACHE_KEYS.usersPlaylists(userId)
+          )
         )
       );
     }
+  }
+
+  private async ensurePlaylistExists(playlistId: string): Promise<TPlaylist> {
+    const playlist = await checkIsExist<TPlaylist>(
+      COLLAB.HANDLER.ERROR_MESSAGES.playlistNotFound(playlistId),
+      () => this.playlistService.getById(playlistId)
+    );
+    return playlist;
   }
 
   public async postCollab(r: R, h: H): Promise<Lf.ReturnValue> {
@@ -56,13 +69,10 @@ class CollabHandler implements ICollabhandler {
       this.validator.postCollab
     );
     const id = this.authorizationService.getUserIdFromRequest(r);
-    const playlist = await checkIsExist<TPlaylist>(
-      `Playlist with id ${collabData.playlistId} not found`,
-      () => this.playlistService.getById(collabData.playlistId)
-    );
+    const playlist = await this.ensurePlaylistExists(collabData.playlistId);
     await this.deleteCollabAndOwnerCache(collabData.playlistId, id);
     await checkIsExist<TUser>(
-      `User with id ${collabData.userId} not found`,
+      COLLAB.HANDLER.ERROR_MESSAGES.userNotFound(collabData.userId),
       () => this.userService.getById(collabData.userId)
     );
     this.authorizationService.ensureOwnerShip(id, playlist);
@@ -79,10 +89,7 @@ class CollabHandler implements ICollabhandler {
     );
     const id = this.authorizationService.getUserIdFromRequest(r);
     await this.deleteCollabAndOwnerCache(collabData.playlistId, id);
-    const playlist = await checkIsExist<TPlaylist>(
-      `Playlist with id ${collabData.playlistId} not found`,
-      () => this.playlistService.getById(collabData.playlistId)
-    );
+    const playlist = await this.ensurePlaylistExists(collabData.playlistId);
     this.authorizationService.ensureOwnerShip(id, playlist);
     const collab = await this.collabService.removeCollab(collabData);
 

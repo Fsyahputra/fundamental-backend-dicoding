@@ -15,6 +15,8 @@ import type {
 } from '@hapi/hapi';
 import { checkData, checkIsExist, fetchFromCacheOrDefault } from '../utils.js';
 import type { ICacheService } from '../types/cache.js';
+import { BadRequestError } from '../exception.js';
+import SONG from '../constant/songs.js';
 
 class SongHandler implements ISongHandler {
   private service: IServiceSong;
@@ -36,21 +38,45 @@ class SongHandler implements ISongHandler {
   }
 
   private async deleteCache(id: string): Promise<void> {
-    await this.cacheService.del('songs:Param');
-    await this.cacheService.del(`songs`);
-    await this.cacheService.del(`songs:${id}`);
+    await this.cacheService.del(SONG.HANDLER.CACHE_KEYS.SONGS_PARAMS);
+    await this.cacheService.del(SONG.HANDLER.CACHE_KEYS.SONGS);
+    await this.cacheService.del(SONG.HANDLER.CACHE_KEYS.songDetails(id));
   }
 
-  public async getSongById(r: R, h: H): Promise<Lf.ReturnValue> {
+  private getSongIdFromRequest(r: R): string {
     const id = r.params['id'];
-    const { data, fromCache } = await fetchFromCacheOrDefault<Song>(
-      `songs:${id}`,
+    if (!id) {
+      throw new BadRequestError(SONG.HANDLER.ERROR_MESSAGES.SONG_ID_REQUIRED);
+    }
+    return id;
+  }
+
+  private async getSongByIdFromCacheOrDb(
+    id: string
+  ): Promise<{ data: Song; fromCache: boolean }> {
+    return fetchFromCacheOrDefault<Song>(
+      SONG.HANDLER.CACHE_KEYS.songDetails(id),
       this.cacheService,
       () => this.service.getById(id)
     );
+  }
+
+  private async getSongByQueryParamsFromCacheOrDb(
+    queryParams: queryParams
+  ): Promise<{ data: Song[]; fromCache: boolean }> {
+    return fetchFromCacheOrDefault<Song[]>(
+      SONG.HANDLER.CACHE_KEYS.SONGS,
+      this.cacheService,
+      () => this.service.getByQueryParams(queryParams)
+    );
+  }
+
+  public async getSongById(r: R, h: H): Promise<Lf.ReturnValue> {
+    const id = this.getSongIdFromRequest(r);
+    const { data, fromCache } = await this.getSongByIdFromCacheOrDb(id);
     const response = this.presentationService.getSongById(data);
     const res = h.response(response);
-    res.header('X-From-Cache', fromCache ? 'true' : 'false');
+    res.header('X-From-Cache', fromCache ? 'cache' : 'database');
     return res.code(200);
   }
 
@@ -63,25 +89,26 @@ class SongHandler implements ISongHandler {
   }
 
   public async deleteSong(r: R, h: H): Promise<Lf.ReturnValue> {
-    const id = r.params['id'];
+    const id = this.getSongIdFromRequest(r);
     await this.deleteCache(id);
-    await checkIsExist<Song>(`Song with id ${id} not found`, () =>
-      this.service.getById(id)
+    const song = await checkIsExist<Song>(
+      SONG.HANDLER.ERROR_MESSAGES.songNotFound(id),
+      () => this.service.delete(id)
     );
-    await this.service.delete(id);
-    const response = this.presentationService.deleteSong(id);
+    const response = this.presentationService.deleteSong(song);
     return h.response(response).code(200);
   }
 
   public async putSong(r: R, h: H): Promise<Lf.ReturnValue> {
-    const id = r.params['id'];
+    const id = this.getSongIdFromRequest(r);
     await this.deleteCache(id);
     const songData = checkData<Partial<SongDTO>>(
       r.payload,
       this.validator.putSchema
     );
-    const song = await checkIsExist<Song>(`Song with id ${id} not found`, () =>
-      this.service.update(id, songData)
+    const song = await checkIsExist<Song>(
+      SONG.HANDLER.ERROR_MESSAGES.songNotFound(id),
+      () => this.service.update(id, songData)
     );
     const response = this.presentationService.putSong(song);
     return h.response(response).code(200);
@@ -100,15 +127,11 @@ class SongHandler implements ISongHandler {
         fromCache: false,
       };
     } else {
-      songdata = await fetchFromCacheOrDefault<Song[]>(
-        `songs`,
-        this.cacheService,
-        () => this.service.getByQueryParams(queryParams)
-      );
+      songdata = await this.getSongByQueryParamsFromCacheOrDb(queryParams);
     }
     const response = this.presentationService.getSongs(songdata.data);
     const res = h.response(response);
-    res.header('X-From-Cache', songdata.fromCache ? 'true' : 'false');
+    res.header('X-From-Cache', songdata.fromCache ? 'cache' : 'database');
     res.header('X-Total-Songs', songdata.data.length.toString());
     return res.code(200);
   }

@@ -1,14 +1,20 @@
-import { nanoid } from "nanoid";
-import type { IServiceSong, queryParams, Song, SongDTO } from "../types/songs.js";
-import type { Pool } from "pg";
-import autoBind from "auto-bind";
-import { NotFoundError, ServerError } from "../exception.js";
+import { nanoid } from 'nanoid';
+import type {
+  IServiceSong,
+  queryParams,
+  Song,
+  SongDTO,
+} from '../types/songs.js';
+import type { Pool } from 'pg';
+import autoBind from 'auto-bind';
+import { NotFoundError, ServerError } from '../exception.js';
+import SONG from '../constant/songs.js';
 
 class SongsService implements IServiceSong {
   private pool: Pool;
   private idGenerator: () => string;
-  private static TABLE_NAME = "songs";
-  private static idPrefix = "song" + "-";
+  private static TABLE_NAME = SONG.SERVICE.TABLE_NAME;
+  private static idPrefix = SONG.SERVICE.ID_PREFIX;
 
   constructor(pool: Pool, idGenerator: () => string = nanoid) {
     this.pool = pool;
@@ -21,13 +27,18 @@ class SongsService implements IServiceSong {
     return id;
   }
 
-  private buildUpdateQuery(song: Partial<SongDTO>, id: string): { text: string; values: any[] } {
+  private buildUpdateQuery(
+    song: Partial<SongDTO>,
+    id: string
+  ): { text: string; values: any[] } {
     const entries = Object.entries(song).filter(([, v]) => v !== undefined);
     if (entries.length === 0) {
-      throw new Error("Nothing to update");
+      throw new Error('Nothing to update');
     }
 
-    const setClause = entries.map(([field], index) => `${field} = $${index + 1}`).join(", ");
+    const setClause = entries
+      .map(([field], index) => `${field} = $${index + 1}`)
+      .join(', ');
 
     const values = entries.map(([, v]) => v);
     const queryText = `
@@ -43,18 +54,17 @@ class SongsService implements IServiceSong {
     };
   }
 
-  private async generateSongFromRow(row: Partial<Song> | undefined): Promise<Song> {
-    if (!row) {
-      throw new NotFoundError(`Song not found`);
-    }
+  private async generateSongFromRow(
+    row: Partial<Song> | undefined
+  ): Promise<Song> {
     return {
-      id: row.id ?? "",
-      title: row.title ?? "",
-      year: row.year ?? 0,
-      performer: row.performer ?? "",
-      genre: row.genre ?? "",
-      duration: row.duration ?? null,
-      albumId: row.albumId ?? null,
+      id: row!.id ?? '',
+      title: row!.title ?? '',
+      year: row!.year ?? 0,
+      performer: row!.performer ?? '',
+      genre: row!.genre ?? '',
+      duration: row!.duration ?? null,
+      albumId: row!.albumId ?? null,
     };
   }
 
@@ -63,12 +73,20 @@ class SongsService implements IServiceSong {
     const { title, year, performer, genre, duration, albumId } = song;
     const query = {
       text: `INSERT INTO ${SongsService.TABLE_NAME} (id, title, year, performer, genre, duration, album_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, title, year, performer, genre, duration, album_id`,
-      values: [id, title, year, performer, genre, duration ?? null, albumId ?? null],
+      values: [
+        id,
+        title,
+        year,
+        performer,
+        genre,
+        duration ?? null,
+        albumId ?? null,
+      ],
     };
     const result = await this.pool.query<Song>(query);
     const SongObj = await this.generateSongFromRow(result.rows[0]);
     if (!SongObj) {
-      throw new ServerError(`Failed to save song with id ${id}`);
+      throw new ServerError(SONG.SERVICE.ERROR_MESSAGES.failedToSave(id));
     }
     return SongObj;
   }
@@ -98,7 +116,10 @@ class SongsService implements IServiceSong {
     return this.generateSongFromRow(result.rows[0]);
   }
 
-  public async update(id: string, song: Partial<SongDTO>): Promise<Song | null> {
+  public async update(
+    id: string,
+    song: Partial<SongDTO>
+  ): Promise<Song | null> {
     const query = this.buildUpdateQuery(song, id);
     const result = await this.pool.query<Song>(query);
     if (result.rows.length === 0) {
@@ -113,7 +134,9 @@ class SongsService implements IServiceSong {
       values: [],
     };
     const result = await this.pool.query<Song>(query);
-    const songs = await Promise.all(result.rows.map((row) => this.generateSongFromRow(row)));
+    const songs = await Promise.all(
+      result.rows.map((row) => this.generateSongFromRow(row))
+    );
     return songs.filter((song): song is Song => song !== null);
   }
 
@@ -123,7 +146,9 @@ class SongsService implements IServiceSong {
       values: [albumId],
     };
     const result = await this.pool.query<Song>(query);
-    const songs = await Promise.all(result.rows.map((row) => this.generateSongFromRow(row)));
+    const songs = await Promise.all(
+      result.rows.map((row) => this.generateSongFromRow(row))
+    );
     return songs.filter((song): song is Song => song !== null);
   }
 
@@ -143,7 +168,7 @@ class SongsService implements IServiceSong {
     }
 
     if (conditions.length > 0) {
-      queryText += ` WHERE ${conditions.join(" AND ")}`;
+      queryText += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     const query = {
@@ -152,7 +177,9 @@ class SongsService implements IServiceSong {
     };
 
     const result = await this.pool.query<Song>(query);
-    const songs = await Promise.all(result.rows.map((row) => this.generateSongFromRow(row)));
+    const songs = await Promise.all(
+      result.rows.map((row) => this.generateSongFromRow(row))
+    );
     return songs.filter((song): song is Song => song !== null);
   }
 
@@ -162,7 +189,9 @@ class SongsService implements IServiceSong {
       values: [playlistId],
     };
     const result = await this.pool.query<Song>(query);
-    const songs = await Promise.all(result.rows.map((row) => this.generateSongFromRow(row)));
+    const songs = await Promise.all(
+      result.rows.map((row) => this.generateSongFromRow(row))
+    );
     return songs.filter((song): song is Song => song !== null);
   }
 }

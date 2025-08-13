@@ -11,12 +11,13 @@ import autoBind from 'auto-bind';
 import type { IMsgService } from '../types/msg.js';
 import { checkIsExist } from '../utils.js';
 import config from '../conf/conf.js';
+import PLAYLIST from '../constant/playlist.js';
 
 class PlaylistService implements IPlayListService {
   private pool: Pool;
   private exportQueue = config.rabbitmq.exportQueue;
-  private static TABLE_NAME = 'playlists';
-  private static idPrefix = 'playlist' + '-';
+  private static TABLE_NAME = PLAYLIST.SERVICE.TABLE_NAME;
+  private static idPrefix = PLAYLIST.SERVICE.ID_PREFIX;
   private msgService: IMsgService;
   private idGenerator: () => string;
 
@@ -85,7 +86,9 @@ class PlaylistService implements IPlayListService {
     };
     const result = await this.pool.query(query);
     if (result.rows.length === 0) {
-      throw new NotFoundError(`Playlist with id ${id} not found`);
+      throw new NotFoundError(
+        PLAYLIST.SERVICE.ERROR_MESSAGES.playlistNotFound(id)
+      );
     }
     return this.convertToPlaylist(result.rows[0]);
   }

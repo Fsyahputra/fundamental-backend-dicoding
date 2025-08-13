@@ -1,6 +1,7 @@
 import type { TAuthResponse } from '../types/auth.js';
 import type { TDataResponse, TMessageResponse } from '../types/shared.js';
 import type { IUserPresentation, TUser } from '../types/users.js';
+import USER from '../constant/user.js';
 
 class UserPresentation implements IUserPresentation {
   public registerUser: (user: TUser) => TDataResponse<{ userId: string }> = (
@@ -40,7 +41,7 @@ class UserPresentation implements IUserPresentation {
   public deauthenticateUser: (token: string) => TMessageResponse = (token) => {
     return {
       status: 'success',
-      message: `User with token ${token} has been deauthenticated.`,
+      message: USER.PRESENTATION_MSG.deauthenticateUser(token),
     };
   };
 }
